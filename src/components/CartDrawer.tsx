@@ -66,7 +66,7 @@ export function CartDrawer() {
             aria-label="Fechar"
             className="flex-1 bg-ink/60"
           />
-          <aside className="w-full max-w-md bg-paper border-l-2 border-ink shadow-vintage-lg flex flex-col">
+          <aside className="w-full max-w-md bg-paper text-ink border-l-2 border-ink shadow-vintage-lg flex flex-col">
             <header className="flex items-center justify-between p-4 border-b-2 border-ink bg-ink text-paper">
               <h2 className="font-display text-2xl tracking-widest uppercase">Carrinho</h2>
               <button type="button" onClick={() => setOpen(false)} className="v-btn v-btn-sm">

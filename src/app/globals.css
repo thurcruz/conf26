@@ -44,6 +44,25 @@
   .v-chip-active {
     @apply bg-ink text-paper hover:bg-ink;
   }
+
+  /* Glass variants — contorno claro, fundo translucido, fica preenchido quando ativo */
+  .glass-card {
+    @apply border-2 border-paper p-5 shadow-vintage text-paper bg-white/10 backdrop-blur-md;
+  }
+  .v-chip-glass {
+    @apply inline-flex items-center justify-center bg-transparent text-paper border-2 border-paper
+           px-3 py-1 font-display tracking-wide text-sm cursor-pointer select-none
+           hover:bg-white/20 transition-colors;
+  }
+  .v-chip-glass-active {
+    @apply bg-paper text-ink hover:bg-paper;
+  }
+  .v-btn-glass {
+    @apply inline-flex items-center justify-center gap-2 bg-transparent text-paper border-2 border-paper
+           px-5 py-3 font-display tracking-wider uppercase text-lg shadow-vintage
+           transition-colors hover:bg-paper hover:text-ink
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-paper;
+  }
   .grain::before {
     content: '';
     position: fixed; inset: 0; pointer-events: none; z-index: 60;

@@ -41,7 +41,7 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
   }
 
   return (
-    <div className="v-card flex flex-col gap-4 text-ink">
+    <div className="glass-card flex flex-col gap-4">
       <header className="flex items-baseline justify-between gap-3">
         <h3 className="font-display text-2xl sm:text-3xl tracking-wider uppercase">
           {colorObj.label}
@@ -51,7 +51,7 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
         </span>
       </header>
 
-      <div className="relative aspect-square border-2 border-ink bg-white overflow-hidden">
+      <div className="relative aspect-square border-2 border-paper overflow-hidden bg-white/5">
         <Image
           src={img}
           alt={`Camisa ${colorObj.label} (${side})`}
@@ -64,14 +64,14 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
           <button
             type="button"
             onClick={() => setSide('frente')}
-            className={`v-chip ${side === 'frente' ? 'v-chip-active' : ''}`}
+            className={`v-chip-glass ${side === 'frente' ? 'v-chip-glass-active' : ''}`}
           >
             Frente
           </button>
           <button
             type="button"
             onClick={() => setSide('costas')}
-            className={`v-chip ${side === 'costas' ? 'v-chip-active' : ''}`}
+            className={`v-chip-glass ${side === 'costas' ? 'v-chip-glass-active' : ''}`}
           >
             Costas
           </button>
@@ -79,14 +79,14 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
       </div>
 
       <div>
-        <p className="font-display text-xs tracking-widest uppercase mb-1">Tipo</p>
+        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">Tipo</p>
         <div className="flex flex-wrap gap-2">
           {TYPES.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setType(t.id)}
-              className={`v-chip ${type === t.id ? 'v-chip-active' : ''}`}
+              className={`v-chip-glass ${type === t.id ? 'v-chip-glass-active' : ''}`}
             >
               {t.label}
             </button>
@@ -95,14 +95,14 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
       </div>
 
       <div>
-        <p className="font-display text-xs tracking-widest uppercase mb-1">Tamanho</p>
+        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">Tamanho</p>
         <div className="flex flex-wrap gap-1.5">
           {SIZES.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => setSize(s)}
-              className={`v-chip min-w-[2.75rem] ${size === s ? 'v-chip-active' : ''}`}
+              className={`v-chip-glass min-w-[2.75rem] ${size === s ? 'v-chip-glass-active' : ''}`}
             >
               {s}
             </button>
@@ -114,7 +114,7 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
         type="button"
         onClick={handleAdd}
         disabled={!size}
-        className="v-btn w-full mt-1"
+        className="v-btn-glass w-full mt-1"
       >
         {added ? '✓ Adicionado' : 'Reservar'}
       </button>
