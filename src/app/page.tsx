@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { Countdown } from '@/components/Countdown';
 import { Background3D } from '@/components/Background3D';
 import { ShirtPicker } from '@/components/ShirtPicker';
+import { SizeChart } from '@/components/SizeChart';
 import { CartDrawer } from '@/components/CartDrawer';
 
 export default function Home() {
@@ -41,6 +42,11 @@ export default function Home() {
         </header>
 
         <ShirtPicker />
+      </section>
+
+      {/* Tabela de medidas */}
+      <section className="py-10 px-4">
+        <SizeChart />
       </section>
 
       {/* How it works */}

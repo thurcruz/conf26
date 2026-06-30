@@ -207,6 +207,9 @@ export default function CheckoutPage() {
           <p className="font-body text-sm mt-2">
             Beneficiário: <strong>{EVENT.pixName}</strong>
           </p>
+          <p className="font-body text-sm">
+            Endereço: <strong>{EVENT.pixAddress}</strong>
+          </p>
         </section>
 
         {/* Comprovante */}
