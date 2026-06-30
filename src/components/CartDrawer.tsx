@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/store/cart';
+import { EVENT } from '@/lib/products';
 
 function brl(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -10,6 +11,8 @@ function brl(n: number) {
 
 export function CartDrawer() {
   const [open, setOpen] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [infoSeen, setInfoSeen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
@@ -22,17 +25,33 @@ export function CartDrawer() {
 
   useEffect(() => {
     function onEsc(e: KeyboardEvent) {
+      if (showInfo) {
+        if (e.key === 'Escape') setShowInfo(false);
+        return;
+      }
       if (e.key === 'Escape') setOpen(false);
     }
     window.addEventListener('keydown', onEsc);
     return () => window.removeEventListener('keydown', onEsc);
-  }, []);
+  }, [showInfo]);
+
+  function openCart() {
+    setOpen(true);
+    if (!infoSeen) {
+      setShowInfo(true);
+      setInfoSeen(true);
+    }
+  }
+
+  const whatsappLink = `https://wa.me/${EVENT.whatsapp}?text=${encodeURIComponent(
+    'Olá! Estou reservando minha camisa da Conferência 2026 e quero enviar o comprovante por aqui.'
+  )}`;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openCart}
         className="fixed bottom-4 right-4 z-40 v-btn !p-3"
         aria-label="Abrir carrinho"
       >
@@ -145,6 +164,65 @@ export function CartDrawer() {
               </Link>
             </footer>
           </aside>
+        </div>
+      )}
+
+      {showInfo && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/70"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="info-popup-title"
+        >
+          <div className="v-card max-w-md w-full text-ink relative">
+            <button
+              type="button"
+              onClick={() => setShowInfo(false)}
+              aria-label="Fechar aviso"
+              className="absolute top-2 right-2 v-btn v-btn-sm !p-1 !px-2 leading-none"
+            >
+              ×
+            </button>
+            <h2
+              id="info-popup-title"
+              className="font-display text-2xl sm:text-3xl tracking-widest uppercase border-b-2 border-ink pb-2 pr-8"
+            >
+              Atenção
+            </h2>
+            <p className="font-body text-sm sm:text-base mt-3">
+              Para confirmar sua reserva você precisa{' '}
+              <strong>enviar o comprovante do PIX</strong>. Há duas formas:
+            </p>
+            <ul className="font-body text-sm sm:text-base mt-3 space-y-2 list-disc pl-5">
+              <li>
+                <strong>Anexar</strong> o comprovante no checkout do site, ou
+              </li>
+              <li>
+                <strong>Enviar pelo WhatsApp</strong> da secretaria.
+              </li>
+            </ul>
+            <p className="font-body text-xs sm:text-sm mt-3 opacity-80">
+              Sem o comprovante, a reserva fica pendente e a camisa não é
+              garantida.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-2 mt-5">
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noreferrer"
+                className="v-btn v-btn-sm"
+              >
+                Falar no WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowInfo(false)}
+                className="v-btn v-btn-sm v-btn-dark"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
