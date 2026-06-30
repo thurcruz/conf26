@@ -73,6 +73,26 @@ export default function Home() {
         <p className="font-body text-xs mt-1 opacity-80 drop-shadow-[1px_1px_0_rgba(0,0,0,0.85)]">
           © Conferência Até o Fim
         </p>
+        <p className="font-body text-xs mt-3 opacity-90 drop-shadow-[1px_1px_0_rgba(0,0,0,0.85)]">
+          Feito com muito código, café e Jesus por{' '}
+          <a
+            href="https://instagram.com/acruzcompany"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:no-underline"
+          >
+            @acruzcompany
+          </a>{' '}
+          &amp;{' '}
+          <a
+            href="https://instagram.com/recargacrtv"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:no-underline"
+          >
+            @recargacrtv
+          </a>
+        </p>
       </footer>
       </div>
 
