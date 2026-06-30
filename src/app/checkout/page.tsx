@@ -61,28 +61,26 @@ export default function CheckoutPage() {
         payment_proof_url = pub.publicUrl;
       }
 
-      const { data, error: insErr } = await supabase
-        .from('reservations')
-        .insert({
-          full_name: name.trim(),
-          phone: phone.trim(),
-          email: email.trim() || null,
-          items: items.map((i) => ({
-            color: i.color,
-            colorLabel: i.colorLabel,
-            size: i.size,
-            type: i.type,
-            typeLabel: i.typeLabel,
-            qty: i.qty,
-            unit_price: i.unitPrice
-          })),
-          total_amount: total,
-          reserve_amount: reserve,
-          payment_proof_url,
-          whatsapp_sent: mode === 'whatsapp'
-        })
-        .select('id')
-        .single();
+      const reservationId = crypto.randomUUID();
+      const { error: insErr } = await supabase.from('reservations').insert({
+        id: reservationId,
+        full_name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || null,
+        items: items.map((i) => ({
+          color: i.color,
+          colorLabel: i.colorLabel,
+          size: i.size,
+          type: i.type,
+          typeLabel: i.typeLabel,
+          qty: i.qty,
+          unit_price: i.unitPrice
+        })),
+        total_amount: total,
+        reserve_amount: reserve,
+        payment_proof_url,
+        whatsapp_sent: mode === 'whatsapp'
+      });
 
       if (insErr) throw insErr;
 
@@ -91,7 +89,7 @@ export default function CheckoutPage() {
         .join('\n');
       const msg = encodeURIComponent(
         `Olá! Acabei de fazer uma reserva da camisa da Conferência 2026.\n\n` +
-          `Nome: ${name}\nTelefone: ${phone}\nReserva #${data.id.slice(0, 8)}\n\n` +
+          `Nome: ${name}\nTelefone: ${phone}\nReserva #${reservationId.slice(0, 8)}\n\n` +
           `Itens:\n${summary}\n\nTotal: ${brl(total)}\nReserva (50%): ${brl(reserve)}\n\n` +
           (mode === 'whatsapp'
             ? 'Vou enviar o comprovante do PIX por aqui.'
@@ -100,7 +98,7 @@ export default function CheckoutPage() {
       const link = `https://wa.me/${EVENT.whatsapp}?text=${msg}`;
 
       clear();
-      setDone({ id: data.id, whatsappLink: link });
+      setDone({ id: reservationId, whatsappLink: link });
       if (mode === 'whatsapp') {
         window.location.href = link;
       }
