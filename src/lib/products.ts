@@ -30,9 +30,7 @@ export const EVENT = {
   ministry: 'Ministério Recarga',
   date: '2026-07-31T20:00:00-03:00',
   pixKey: process.env.NEXT_PUBLIC_PIX_KEY ?? '42.252.288/0001-31',
-  pixName:
-    process.env.NEXT_PUBLIC_PIX_NAME ?? 'IGREJA BATISTA CENTRAL DE CAMPO-GRANDE',
-  pixAddress:
-    process.env.NEXT_PUBLIC_PIX_ADDRESS ?? 'Rua União da Vitória, 564',
+  pixName: 'IGREJA BATISTA CENTRAL DE CAMPO-GRANDE',
+  pixAddress: 'Rua União da Vitória, 564',
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5521964829407'
 } as const;
