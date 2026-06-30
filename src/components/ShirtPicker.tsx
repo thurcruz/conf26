@@ -41,7 +41,7 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
   }
 
   return (
-    <div className="v-card flex flex-col gap-4">
+    <div className="v-card flex flex-col gap-4 text-ink">
       <header className="flex items-baseline justify-between gap-3">
         <h3 className="font-display text-2xl sm:text-3xl tracking-wider uppercase">
           {colorObj.label}
