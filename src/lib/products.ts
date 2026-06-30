@@ -10,7 +10,7 @@ export type TypeId = typeof TYPES[number]['id'];
 export const COLORS = [
   {
     id: 'branco-azul',
-    label: 'Branco / Azul',
+    label: 'Marfim / Azul',
     swatch: '#f5f1e8',
     frontImg: '/CAMISA_BRANCO_FRENTE.png',
     backImg: '/CAMISA_BRANCO_COSTAS.png'
