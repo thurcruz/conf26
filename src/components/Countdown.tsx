@@ -37,24 +37,21 @@ export function Countdown() {
   );
 
   return (
-    <div className="w-full bg-ink text-paper border-b-2 border-ink">
-      <div className="max-w-6xl mx-auto px-3 py-2 flex items-center justify-between gap-3">
-        <div className="font-display text-xs sm:text-base tracking-widest uppercase">
-          <span className="hidden sm:inline">31 · julho · 2026 — </span>
-          <span>20h00</span>
-        </div>
-        <div className="flex items-center divide-x divide-paper/30">
-          {mounted ? (
-            <>
-              {cell(t.days, 'dias')}
-              {cell(t.hours, 'h')}
-              {cell(t.minutes, 'min')}
-              {cell(t.seconds, 'seg')}
-            </>
-          ) : (
-            <div className="font-display text-2xl">--:--:--:--</div>
-          )}
-        </div>
+    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-30 v-card !p-2 !px-3 flex items-center gap-3 text-ink">
+      <div className="font-display text-xs sm:text-sm tracking-widest uppercase hidden sm:block border-r-2 border-ink pr-3">
+        31 · jul · 2026
+      </div>
+      <div className="flex items-center divide-x-2 divide-ink">
+        {mounted ? (
+          <>
+            {cell(t.days, 'dias')}
+            {cell(t.hours, 'h')}
+            {cell(t.minutes, 'min')}
+            {cell(t.seconds, 'seg')}
+          </>
+        ) : (
+          <div className="font-display text-xl">--:--:--:--</div>
+        )}
       </div>
     </div>
   );

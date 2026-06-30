@@ -33,10 +33,29 @@ export function CartDrawer() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 right-4 z-40 v-btn v-btn-dark"
+        className="fixed bottom-4 right-4 z-40 v-btn !p-3"
         aria-label="Abrir carrinho"
       >
-        Carrinho ({mounted ? count : 0})
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+          aria-hidden="true"
+        >
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+        {mounted && count > 0 && (
+          <span className="absolute -top-2 -right-2 min-w-[1.4rem] h-[1.4rem] px-1 inline-flex items-center justify-center bg-ink text-paper border-2 border-ink font-display text-xs tabular-nums">
+            {count}
+          </span>
+        )}
       </button>
 
       {open && (

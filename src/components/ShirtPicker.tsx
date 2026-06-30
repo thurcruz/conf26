@@ -6,21 +6,30 @@ import { COLORS, SIZES, TYPES, type ColorId, type Size, type TypeId } from '@/li
 import { useCart } from '@/store/cart';
 
 export function ShirtPicker() {
+  return (
+    <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
+      {COLORS.map((c) => (
+        <ShirtCard key={c.id} colorId={c.id} />
+      ))}
+    </div>
+  );
+}
+
+function ShirtCard({ colorId }: { colorId: ColorId }) {
   const add = useCart((s) => s.add);
-  const [color, setColor] = useState<ColorId>(COLORS[0].id);
+  const colorObj = COLORS.find((c) => c.id === colorId)!;
+  const [side, setSide] = useState<'frente' | 'costas'>('frente');
   const [size, setSize] = useState<Size | null>(null);
   const [type, setType] = useState<TypeId>('adulto');
-  const [side, setSide] = useState<'frente' | 'costas'>('frente');
   const [added, setAdded] = useState(false);
 
-  const colorObj = COLORS.find((c) => c.id === color)!;
   const typeObj = TYPES.find((t) => t.id === type)!;
   const img = side === 'frente' ? colorObj.frontImg : colorObj.backImg;
 
   function handleAdd() {
     if (!size) return;
     add({
-      color: color,
+      color: colorId,
       colorLabel: colorObj.label,
       size,
       type,
@@ -32,14 +41,22 @@ export function ShirtPicker() {
   }
 
   return (
-    <div className="v-card max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
-      {/* Image */}
-      <div className="relative aspect-square border-2 border-ink bg-bone overflow-hidden">
+    <div className="v-card flex flex-col gap-4">
+      <header className="flex items-baseline justify-between gap-3">
+        <h3 className="font-display text-2xl sm:text-3xl tracking-wider uppercase">
+          {colorObj.label}
+        </h3>
+        <span className="font-body text-sm">
+          R$ {typeObj.price.toFixed(2).replace('.', ',')}
+        </span>
+      </header>
+
+      <div className="relative aspect-square border-2 border-ink bg-white overflow-hidden">
         <Image
           src={img}
           alt={`Camisa ${colorObj.label} (${side})`}
           fill
-          sizes="(min-width: 768px) 480px, 90vw"
+          sizes="(min-width: 768px) 420px, 90vw"
           className="object-contain"
           priority
         />
@@ -61,74 +78,46 @@ export function ShirtPicker() {
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col gap-5">
-        <div>
-          <h3 className="font-display text-2xl tracking-wider uppercase">Escolha a Cor</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {COLORS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setColor(c.id)}
-                className={`v-chip ${color === c.id ? 'v-chip-active' : ''}`}
-              >
-                <span
-                  className="inline-block w-3 h-3 border border-ink mr-2"
-                  style={{ background: c.swatch }}
-                />
-                {c.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="font-display text-2xl tracking-wider uppercase">Tipo</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {TYPES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setType(t.id)}
-                className={`v-chip ${type === t.id ? 'v-chip-active' : ''}`}
-              >
-                {t.label} — R$ {t.price.toFixed(2).replace('.', ',')}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="font-display text-2xl tracking-wider uppercase">Tamanho</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {SIZES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSize(s)}
-                className={`v-chip min-w-[3rem] ${size === s ? 'v-chip-active' : ''}`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-auto pt-2 border-t-2 border-ink">
-          <p className="font-body text-sm mb-3">
-            Reserva: <strong>50% do valor</strong> · Restante pago na retirada da camisa.
-          </p>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!size}
-            className="v-btn w-full"
-          >
-            {added ? '✓ Adicionado ao carrinho' : 'Reservar agora'}
-          </button>
+      <div>
+        <p className="font-display text-xs tracking-widest uppercase mb-1">Tipo</p>
+        <div className="flex flex-wrap gap-2">
+          {TYPES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setType(t.id)}
+              className={`v-chip ${type === t.id ? 'v-chip-active' : ''}`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
+
+      <div>
+        <p className="font-display text-xs tracking-widest uppercase mb-1">Tamanho</p>
+        <div className="flex flex-wrap gap-1.5">
+          {SIZES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSize(s)}
+              className={`v-chip min-w-[2.75rem] ${size === s ? 'v-chip-active' : ''}`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleAdd}
+        disabled={!size}
+        className="v-btn w-full mt-1"
+      >
+        {added ? '✓ Adicionado' : 'Reservar'}
+      </button>
     </div>
   );
 }
