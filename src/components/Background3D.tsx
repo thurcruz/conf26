@@ -39,7 +39,7 @@ export function Background3D() {
   }, []);
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden bg-ink stage-3d">
+    <div className="fixed inset-0 z-0 overflow-hidden bg-ink stage-3d">
       <div
         ref={layerRef}
         className="bg-layer absolute inset-[-8%]"

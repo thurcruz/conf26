@@ -11,6 +11,7 @@ export default function Home() {
 
       <Countdown />
 
+      <div className="relative z-10 flex-1 flex flex-col">
       {/* Hero */}
       <section className="flex-1 flex flex-col items-center justify-center px-4 py-12 text-center">
         <div className="relative w-[min(86vw,520px)] aspect-square">
@@ -67,6 +68,7 @@ export default function Home() {
           © Conferência Até o Fim
         </p>
       </footer>
+      </div>
 
       <CartDrawer />
     </main>
