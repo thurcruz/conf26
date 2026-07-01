@@ -195,9 +195,6 @@ export function AdminDashboard({
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link href="/" className="v-btn v-btn-sm">Site</Link>
-            <button type="button" onClick={() => setCreating(true)} className="v-btn v-btn-sm">
-              + Novo pedido
-            </button>
             <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
               Relatório
             </button>
@@ -233,6 +230,16 @@ export function AdminDashboard({
           onChange={(e) => setSearch(e.target.value)}
           className="v-input flex-1 min-w-[200px]"
         />
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 pb-3">
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="v-btn"
+        >
+          + Novo pedido
+        </button>
       </section>
 
       <section className="max-w-7xl mx-auto px-4 pb-10 space-y-3">
