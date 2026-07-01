@@ -184,14 +184,19 @@ export function AdminDashboard({
       a.full_name.localeCompare(b.full_name, 'pt-BR')
     );
     const html = buildPrintHtml(rows, filter);
-    const w = window.open('', '_blank', 'width=1100,height=800');
-    if (!w) {
-      alert('Bloqueador de pop-up impediu a abertura. Libere e tente de novo.');
-      return;
-    }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date()
+      .toISOString()
+      .slice(0, 16)
+      .replace(/[:T]/g, '-');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio-camisas-${stamp}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
   function updateReservationInList(updated: Reservation) {
@@ -209,7 +214,7 @@ export function AdminDashboard({
           <div className="flex gap-2 flex-wrap">
             <Link href="/" className="v-btn v-btn-sm">Site</Link>
             <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
-              Exportar relatório
+              Baixar relatório
             </button>
             <button type="button" onClick={() => setShowChangePwd(true)} className="v-btn v-btn-sm">
               Trocar senha
