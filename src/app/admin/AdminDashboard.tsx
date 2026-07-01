@@ -36,6 +36,14 @@ function brl(n: number) {
   return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function waNumber(phone: string): string {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  // Se o cliente digitou so DDD+numero (10 ou 11 digitos), assume Brasil (+55)
+  if (digits.length === 10 || digits.length === 11) digits = '55' + digits;
+  return digits;
+}
+
 export function AdminDashboard({
   initialReservations,
   userEmail
@@ -271,7 +279,7 @@ export function AdminDashboard({
                 />
               </label>
               <a
-                href={`https://wa.me/${r.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                href={`https://wa.me/${waNumber(r.phone)}?text=${encodeURIComponent(
                   `Olá, ${r.full_name.split(' ')[0]}! Aqui é da Secretária da IBCCG.\n\n` +
                     `Estamos organizando as reservas das camisas da Conferência 2026 e ainda não recebemos o comprovante do PIX da sua reserva #${r.id.slice(0, 8).toUpperCase()} (${brl(r.reserve_amount)}).\n\n` +
                     `Você poderia nos enviar o comprovante por aqui, por favor? Assim garantimos sua camisa. Muito obrigado!`
