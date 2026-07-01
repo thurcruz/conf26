@@ -96,4 +96,14 @@
     display: inline-flex; white-space: nowrap;
     animation: marquee 30s linear infinite;
   }
+
+  @keyframes toast-in {
+    0%   { opacity: 0; transform: translateX(12px); }
+    12%  { opacity: 1; transform: translateX(0); }
+    88%  { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(6px); }
+  }
+  .animate-toast-in {
+    animation: toast-in 3.2s ease-in-out forwards;
+  }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/store/cart';
 
@@ -21,6 +21,30 @@ export function CartDrawer() {
   const count = useCart((s) => s.count());
 
   useEffect(() => setMounted(true), []);
+
+  // Toast quando adiciona item
+  const [showToast, setShowToast] = useState(false);
+  const prevCountRef = useRef(count);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!mounted) {
+      prevCountRef.current = count;
+      return;
+    }
+    if (count > prevCountRef.current && !open) {
+      setShowToast(true);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setShowToast(false), 3200);
+    }
+    prevCountRef.current = count;
+  }, [count, open, mounted]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     function onEsc(e: KeyboardEvent) {
@@ -44,6 +68,33 @@ export function CartDrawer() {
 
   return (
     <>
+      {mounted && showToast && !open && (
+        <div
+          className="fixed bottom-5 right-[4.5rem] z-40 flex items-center pointer-events-none animate-toast-in"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="border-2 border-r-0 border-paper text-paper font-display tracking-widest uppercase text-xs sm:text-sm px-3 py-2 whitespace-nowrap drop-shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
+            Seu pedido foi adicionado aqui
+          </div>
+          <svg
+            width="12"
+            height="34"
+            viewBox="0 0 12 34"
+            fill="none"
+            className="-ml-[2px] drop-shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+            aria-hidden="true"
+          >
+            <polyline
+              points="0,1 12,17 0,33"
+              stroke="#f5f1e8"
+              strokeWidth="2"
+              strokeLinejoin="miter"
+              fill="none"
+            />
+          </svg>
+        </div>
+      )}
       <button
         type="button"
         onClick={openCart}
