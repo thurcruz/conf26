@@ -262,9 +262,9 @@ export function AdminDashboard({
               </label>
               <a
                 href={`https://wa.me/${r.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                  `Olá, ${r.full_name.split(' ')[0]}! Aqui é do Ministério Recarga.\n\n` +
+                  `Olá, ${r.full_name.split(' ')[0]}! Aqui é da Secretária da IBCCG.\n\n` +
                     `Estamos organizando as reservas das camisas da Conferência 2026 e ainda não recebemos o comprovante do PIX da sua reserva #${r.id.slice(0, 8).toUpperCase()} (${brl(r.reserve_amount)}).\n\n` +
-                    `Você poderia nos enviar o comprovante por aqui, por favor? Assim garantimos sua camisa. Muito obrigado! 🙏`
+                    `Você poderia nos enviar o comprovante por aqui, por favor? Assim garantimos sua camisa. Muito obrigado!`
                 )}`}
                 target="_blank"
                 rel="noreferrer"
@@ -276,7 +276,7 @@ export function AdminDashboard({
                 <button
                   type="button"
                   onClick={() => changeStatus(r.id, 'confirmado')}
-                  className="v-btn v-btn-sm v-btn-dark"
+                  className="v-btn v-btn-sm"
                 >
                   Confirmar
                 </button>
@@ -285,7 +285,7 @@ export function AdminDashboard({
                 <button
                   type="button"
                   onClick={() => togglePaid(r.id, true)}
-                  className="v-btn v-btn-sm v-btn-dark"
+                  className="v-btn v-btn-sm"
                 >
                   Pago
                 </button>
