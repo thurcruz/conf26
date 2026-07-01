@@ -857,10 +857,14 @@ function EditReservationModal({
             />
           </label>
           <label className="block">
-            <span className="font-display tracking-widest uppercase text-sm">E-mail</span>
+            <span className="font-display tracking-widest uppercase text-sm">
+              E-mail <span className="opacity-70">(opcional)</span>
+            </span>
             <input
               className="v-input mt-1"
-              type="email"
+              type="text"
+              inputMode="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -1125,10 +1129,14 @@ function NewReservationModal({
             />
           </label>
           <label className="block">
-            <span className="font-display tracking-widest uppercase text-sm">E-mail</span>
+            <span className="font-display tracking-widest uppercase text-sm">
+              E-mail <span className="opacity-70">(opcional)</span>
+            </span>
             <input
               className="v-input mt-1"
-              type="email"
+              type="text"
+              inputMode="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
