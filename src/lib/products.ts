@@ -1,5 +1,5 @@
 export const ADULT_SIZES = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG'] as const;
-export const INFANT_SIZES = ['2', '4', '6', '8', '12', '14'] as const;
+export const INFANT_SIZES = ['2', '4', '6', '8', '10', '12', '14'] as const;
 export const SIZES = [...INFANT_SIZES, ...ADULT_SIZES] as const;
 export type Size = typeof SIZES[number];
 
