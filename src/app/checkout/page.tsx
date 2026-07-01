@@ -131,7 +131,6 @@ export default function CheckoutPage() {
           <a href={done.whatsappLink} target="_blank" rel="noreferrer" className="v-btn v-btn-dark w-full mt-5">
             Falar com a secretaria
           </a>
-          <Link href="/" className="v-btn w-full mt-2">Voltar ao início</Link>
         </div>
       </main>
     );
