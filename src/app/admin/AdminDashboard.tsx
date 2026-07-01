@@ -261,12 +261,16 @@ export function AdminDashboard({
                 />
               </label>
               <a
-                href={`https://wa.me/${r.phone.replace(/\D/g, '')}`}
+                href={`https://wa.me/${r.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                  `Olá, ${r.full_name.split(' ')[0]}! Aqui é do Ministério Recarga.\n\n` +
+                    `Estamos organizando as reservas das camisas da Conferência 2026 e ainda não recebemos o comprovante do PIX da sua reserva #${r.id.slice(0, 8).toUpperCase()} (${brl(r.reserve_amount)}).\n\n` +
+                    `Você poderia nos enviar o comprovante por aqui, por favor? Assim garantimos sua camisa. Muito obrigado! 🙏`
+                )}`}
                 target="_blank"
                 rel="noreferrer"
                 className="v-btn v-btn-sm"
               >
-                WhatsApp
+                Cobrar no WhatsApp
               </a>
               {r.status !== 'confirmado' && (
                 <button
