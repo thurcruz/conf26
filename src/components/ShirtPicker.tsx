@@ -125,7 +125,7 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
         disabled={!size}
         className="v-btn-glass w-full mt-1"
       >
-        {added ? '✓ Adicionado' : 'Reservar'}
+        {added ? '✓ Adicionado' : 'Adicionar ao carrinho'}
       </button>
     </div>
   );

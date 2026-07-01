@@ -258,7 +258,7 @@ export default function CheckoutPage() {
             Envie o comprovante
           </h2>
           <p className="font-body text-sm mb-3">
-            Anexe o comprovante do PIX abaixo <em>OU</em> envie diretamente pelo WhatsApp.
+            Para confirmar sua reserva, anexe o comprovante do PIX abaixo <em>OU</em> envie diretamente pelo WhatsApp.
           </p>
           <input
             type="file"
