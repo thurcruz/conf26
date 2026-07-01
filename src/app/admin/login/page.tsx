@@ -9,6 +9,7 @@ export default function AdminLogin() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,13 +48,24 @@ export default function AdminLogin() {
         </label>
         <label className="block mt-3">
           <span className="font-display tracking-widest uppercase text-sm">Senha</span>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="v-input mt-1"
-          />
+          <div className="mt-1 flex gap-2">
+            <input
+              type={showPwd ? 'text' : 'password'}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="v-input flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd((v) => !v)}
+              aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}
+              aria-pressed={showPwd}
+              className="v-btn v-btn-sm !px-3"
+            >
+              {showPwd ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
         </label>
 
         {error && (
