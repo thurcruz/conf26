@@ -26,6 +26,7 @@ type Reservation = {
   payment_proof_url: string | null;
   whatsapp_sent: boolean;
   status: 'pendente' | 'confirmado' | 'cancelado';
+  paid_in_full: boolean;
   notes: string | null;
   created_at: string;
 };
@@ -64,8 +65,12 @@ export function AdminDashboard({
     );
     const totalReservas = list.length;
     const totalArrecadado = list
-      .filter((r) => r.status === 'confirmado')
-      .reduce((a, r) => a + Number(r.reserve_amount), 0);
+      .filter((r) => r.status === 'confirmado' || r.paid_in_full)
+      .reduce(
+        (a, r) =>
+          a + Number(r.paid_in_full ? r.total_amount : r.reserve_amount),
+        0
+      );
     const pendente = list.filter((r) => r.status === 'pendente').length;
     return { totalItems, totalReservas, totalArrecadado, pendente };
   }, [list]);
@@ -78,6 +83,47 @@ export function AdminDashboard({
       return;
     }
     setList((cur) => cur.map((r) => (r.id === id ? { ...r, status } : r)));
+  }
+
+  async function togglePaid(id: string, paid: boolean) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('reservations')
+      .update({ paid_in_full: paid })
+      .eq('id', id);
+    if (error) {
+      alert('Erro: ' + error.message);
+      return;
+    }
+    setList((cur) =>
+      cur.map((r) => (r.id === id ? { ...r, paid_in_full: paid } : r))
+    );
+  }
+
+  async function attachProof(id: string, file: File) {
+    const supabase = createClient();
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `admin_${id}_${Date.now()}_${safe}`;
+    const up = await supabase.storage.from('comprovantes').upload(path, file);
+    if (up.error) {
+      alert('Erro no upload: ' + up.error.message);
+      return;
+    }
+    const { data: pub } = supabase.storage
+      .from('comprovantes')
+      .getPublicUrl(path);
+    const url = pub.publicUrl;
+    const { error } = await supabase
+      .from('reservations')
+      .update({ payment_proof_url: url })
+      .eq('id', id);
+    if (error) {
+      alert('Erro ao salvar URL: ' + error.message);
+      return;
+    }
+    setList((cur) =>
+      cur.map((r) => (r.id === id ? { ...r, payment_proof_url: url } : r))
+    );
   }
 
   async function remove(id: string) {
@@ -155,7 +201,7 @@ export function AdminDashboard({
                   {new Date(r.created_at).toLocaleString('pt-BR')}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={`v-chip ${
                     r.status === 'confirmado'
@@ -167,6 +213,9 @@ export function AdminDashboard({
                 >
                   {r.status}
                 </span>
+                {r.paid_in_full && (
+                  <span className="v-chip v-chip-active">pago 100%</span>
+                )}
               </div>
             </header>
 
@@ -194,10 +243,23 @@ export function AdminDashboard({
                   Ver comprovante
                 </a>
               ) : (
-                <span className="font-body text-sm italic">
+                <span className="font-body text-sm italic self-center">
                   {r.whatsapp_sent ? 'Comprovante via WhatsApp' : 'Sem comprovante'}
                 </span>
               )}
+              <label className="v-btn v-btn-sm cursor-pointer">
+                {r.payment_proof_url ? 'Trocar anexo' : 'Anexar comprovante'}
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) attachProof(r.id, f);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
               <a
                 href={`https://wa.me/${r.phone.replace(/\D/g, '')}`}
                 target="_blank"
@@ -213,6 +275,23 @@ export function AdminDashboard({
                   className="v-btn v-btn-sm v-btn-dark"
                 >
                   Confirmar
+                </button>
+              )}
+              {!r.paid_in_full ? (
+                <button
+                  type="button"
+                  onClick={() => togglePaid(r.id, true)}
+                  className="v-btn v-btn-sm v-btn-dark"
+                >
+                  Pago
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => togglePaid(r.id, false)}
+                  className="v-btn v-btn-sm"
+                >
+                  Desfazer pago
                 </button>
               )}
               {r.status !== 'pendente' && (
