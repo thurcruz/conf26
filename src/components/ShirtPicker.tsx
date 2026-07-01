@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { COLORS, SIZES, TYPES, type ColorId, type Size, type TypeId } from '@/lib/products';
+import { COLORS, TYPES, sizesForType, type ColorId, type Size, type TypeId } from '@/lib/products';
 import { useCart } from '@/store/cart';
 
 export function ShirtPicker() {
@@ -20,11 +20,18 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
   const colorObj = COLORS.find((c) => c.id === colorId)!;
   const [side, setSide] = useState<'frente' | 'costas'>('frente');
   const [size, setSize] = useState<Size | null>(null);
-  const [type, setType] = useState<TypeId>('adulto');
+  const [type, setType] = useState<TypeId>('casual');
   const [added, setAdded] = useState(false);
 
   const typeObj = TYPES.find((t) => t.id === type)!;
+  const availableSizes = sizesForType(type);
   const img = side === 'frente' ? colorObj.frontImg : colorObj.backImg;
+
+  function handleTypeChange(newType: TypeId) {
+    setType(newType);
+    const newSizes = sizesForType(newType);
+    if (size && !newSizes.includes(size)) setSize(null);
+  }
 
   function handleAdd() {
     if (!size) return;
@@ -79,29 +86,31 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
       </div>
 
       <div>
-        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">Tipo</p>
+        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">Modelo</p>
         <div className="flex flex-wrap gap-2">
           {TYPES.map((t) => (
             <button
               key={t.id}
               type="button"
-              onClick={() => setType(t.id)}
+              onClick={() => handleTypeChange(t.id)}
               className={`v-chip-glass ${type === t.id ? 'v-chip-glass-active' : ''}`}
             >
-              {t.label}
+              {t.label} · R$ {t.price.toFixed(2).replace('.', ',')}
             </button>
           ))}
         </div>
       </div>
 
       <div>
-        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">Tamanho</p>
+        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">
+          Tamanho {type === 'infantil' && <span className="opacity-70">(anos)</span>}
+        </p>
         <div className="flex flex-wrap gap-1.5">
-          {SIZES.map((s) => (
+          {availableSizes.map((s) => (
             <button
               key={s}
               type="button"
-              onClick={() => setSize(s)}
+              onClick={() => setSize(s as Size)}
               className={`v-chip-glass min-w-[2.75rem] ${size === s ? 'v-chip-glass-active' : ''}`}
             >
               {s}

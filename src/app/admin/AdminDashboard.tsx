@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { COLORS, SIZES, TYPES, type ColorId, type Size, type TypeId } from '@/lib/products';
+import { COLORS, TYPES, sizesForType, type ColorId, type Size, type TypeId } from '@/lib/products';
 
 type Item = {
   color: string;
@@ -487,12 +487,17 @@ function EditReservationModal({
       cur.map((it, i) => {
         if (i !== idx) return it;
         const merged = { ...it, ...patch };
-        // Se mudou o tipo, atualiza o unit_price e o typeLabel
+        // Se mudou o tipo, atualiza o unit_price, typeLabel e reseta o size
+        // se ele nao existir mais no novo tipo
         if (patch.type) {
           const t = TYPES.find((x) => x.id === patch.type);
           if (t) {
             merged.unit_price = t.price;
             merged.typeLabel = t.label;
+            const allowed = sizesForType(patch.type);
+            if (!allowed.includes(merged.size)) {
+              merged.size = allowed[0];
+            }
           }
         }
         // Se mudou a cor, atualiza colorLabel
@@ -517,7 +522,7 @@ function EditReservationModal({
       {
         color: c.id,
         colorLabel: c.label,
-        size: 'M',
+        size: t.sizes[0],
         type: t.id,
         typeLabel: t.label,
         qty: 1,
@@ -650,7 +655,7 @@ function EditReservationModal({
                 onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
                 className="v-input"
               >
-                {SIZES.map((s) => (
+                {sizesForType(it.type).map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>

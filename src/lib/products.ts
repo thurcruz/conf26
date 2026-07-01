@@ -1,11 +1,18 @@
-export const SIZES = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG'] as const;
+export const ADULT_SIZES = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG'] as const;
+export const INFANT_SIZES = ['2', '4', '6', '8', '12', '14'] as const;
+export const SIZES = [...INFANT_SIZES, ...ADULT_SIZES] as const;
 export type Size = typeof SIZES[number];
 
 export const TYPES = [
-  { id: 'adulto', label: 'Adulto', price: 50 },
-  { id: 'infantil', label: 'Infantil', price: 40 }
+  { id: 'infantil',  label: 'Infantil',  price: 40, sizes: INFANT_SIZES },
+  { id: 'casual',    label: 'Casual',    price: 50, sizes: ADULT_SIZES },
+  { id: 'oversize',  label: 'Oversize',  price: 60, sizes: ADULT_SIZES }
 ] as const;
 export type TypeId = typeof TYPES[number]['id'];
+
+export function sizesForType(typeId: string): readonly string[] {
+  return TYPES.find((t) => t.id === typeId)?.sizes ?? ADULT_SIZES;
+}
 
 export const COLORS = [
   {

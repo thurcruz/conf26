@@ -37,7 +37,7 @@ export default function Home() {
             Camisa Oficial
           </h2>
           <p className="font-body text-base mt-2 drop-shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
-            Modelo Tradicional Unissex · Adulto R$ 50,00 · Infantil R$ 40,00
+            Infantil R$ 40,00 · Casual R$ 50,00 · Oversize R$ 60,00
           </p>
         </header>
 
