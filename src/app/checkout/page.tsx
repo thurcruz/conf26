@@ -21,11 +21,14 @@ export default function CheckoutPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [payMode, setPayMode] = useState<'reserve' | 'full'>('reserve');
   const [file, setFile] = useState<File | null>(null);
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: string; whatsappLink: string } | null>(null);
+
+  const payNow = payMode === 'full' ? total : reserve;
 
   function copyPix() {
     navigator.clipboard.writeText(EVENT.pixKey);
@@ -77,7 +80,8 @@ export default function CheckoutPage() {
           unit_price: i.unitPrice
         })),
         total_amount: total,
-        reserve_amount: reserve,
+        reserve_amount: payNow,
+        paid_in_full: payMode === 'full',
         payment_proof_url,
         whatsapp_sent: mode === 'whatsapp'
       });
@@ -90,7 +94,10 @@ export default function CheckoutPage() {
       const msg = encodeURIComponent(
         `Olá! Acabei de fazer uma reserva da camisa da Conferência 2026.\n\n` +
           `Nome: ${name}\nTelefone: ${phone}\nReserva #${reservationId.slice(0, 8)}\n\n` +
-          `Itens:\n${summary}\n\nTotal: ${brl(total)}\nReserva (50%): ${brl(reserve)}\n\n` +
+          `Itens:\n${summary}\n\nTotal: ${brl(total)}\n` +
+          (payMode === 'full'
+            ? `Pago integralmente: ${brl(total)}\n\n`
+            : `Reserva (50%): ${brl(reserve)}\n\n`) +
           (mode === 'whatsapp'
             ? 'Vou enviar o comprovante do PIX por aqui.'
             : 'Comprovante já anexado no site.')
@@ -165,9 +172,43 @@ export default function CheckoutPage() {
             <span>Total</span>
             <span>{brl(total)}</span>
           </div>
-          <div className="flex justify-between font-display text-2xl uppercase">
-            <span>Pagar agora (50%)</span>
-            <span>{brl(reserve)}</span>
+
+          <div className="mt-3 pt-3 border-t-2 border-ink">
+            <p className="font-display tracking-widest uppercase text-sm mb-2">
+              Como quer pagar?
+            </p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPayMode('reserve')}
+                className={`v-chip w-full justify-between !py-3 ${
+                  payMode === 'reserve' ? 'v-chip-active' : ''
+                }`}
+              >
+                <span>Reserva 50%</span>
+                <strong>{brl(reserve)}</strong>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayMode('full')}
+                className={`v-chip w-full justify-between !py-3 ${
+                  payMode === 'full' ? 'v-chip-active' : ''
+                }`}
+              >
+                <span>Pagar tudo</span>
+                <strong>{brl(total)}</strong>
+              </button>
+            </div>
+            <p className="font-body text-xs mt-2 opacity-80">
+              {payMode === 'reserve'
+                ? 'Você paga 50% agora e o restante na retirada da camisa.'
+                : 'Você paga o valor total agora. Nada a pagar na retirada.'}
+            </p>
+          </div>
+
+          <div className="mt-3 flex justify-between font-display text-2xl uppercase">
+            <span>Pagar agora</span>
+            <span>{brl(payNow)}</span>
           </div>
         </section>
 
@@ -195,7 +236,7 @@ export default function CheckoutPage() {
         {/* PIX */}
         <section className="v-card">
           <h2 className="font-display text-2xl tracking-widest uppercase border-b-2 border-ink pb-2 mb-3">
-            Pague {brl(reserve)} via PIX
+            Pague {brl(payNow)} via PIX
           </h2>
           <p className="font-body text-sm mb-2">Chave PIX (CNPJ):</p>
           <div className="flex gap-2 items-stretch">

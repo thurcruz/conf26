@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/store/cart';
-import { EVENT } from '@/lib/products';
 
 function brl(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -42,10 +41,6 @@ export function CartDrawer() {
       setInfoSeen(true);
     }
   }
-
-  const whatsappLink = `https://wa.me/${EVENT.whatsapp}?text=${encodeURIComponent(
-    'Olá! Estou reservando minha camisa da Conferência 2026 e quero enviar o comprovante por aqui.'
-  )}`;
 
   return (
     <>
@@ -205,19 +200,11 @@ export function CartDrawer() {
               Sem o comprovante, a reserva fica pendente e a camisa não é
               garantida.
             </p>
-            <div className="grid sm:grid-cols-2 gap-2 mt-5">
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noreferrer"
-                className="v-btn v-btn-sm"
-              >
-                Falar no WhatsApp
-              </a>
+            <div className="mt-5">
               <button
                 type="button"
                 onClick={() => setShowInfo(false)}
-                className="v-btn v-btn-sm v-btn-dark"
+                className="v-btn v-btn-sm w-full"
               >
                 Entendi
               </button>
