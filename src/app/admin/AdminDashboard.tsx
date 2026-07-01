@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { COLORS, SIZES, TYPES, type ColorId, type Size, type TypeId } from '@/lib/products';
 
 type Item = {
   color: string;
@@ -46,6 +47,8 @@ export function AdminDashboard({
   const [list, setList] = useState<Reservation[]>(initialReservations);
   const [filter, setFilter] = useState<'todas' | 'pendente' | 'confirmado' | 'cancelado'>('todas');
   const [search, setSearch] = useState('');
+  const [showChangePwd, setShowChangePwd] = useState(false);
+  const [editing, setEditing] = useState<Reservation | null>(null);
 
   const filtered = useMemo(() => {
     return list.filter((r) => {
@@ -144,6 +147,10 @@ export function AdminDashboard({
     router.refresh();
   }
 
+  function updateReservationInList(updated: Reservation) {
+    setList((cur) => cur.map((r) => (r.id === updated.id ? updated : r)));
+  }
+
   return (
     <main className="min-h-screen bg-paper text-ink">
       <header className="bg-ink text-paper border-b-2 border-ink">
@@ -152,8 +159,11 @@ export function AdminDashboard({
             <h1 className="font-display text-2xl tracking-widest uppercase">Painel Admin</h1>
             <p className="font-body text-xs opacity-80">{userEmail}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link href="/" className="v-btn v-btn-sm">Site</Link>
+            <button type="button" onClick={() => setShowChangePwd(true)} className="v-btn v-btn-sm">
+              Trocar senha
+            </button>
             <button type="button" onClick={logout} className="v-btn v-btn-sm">Sair</button>
           </div>
         </div>
@@ -272,6 +282,13 @@ export function AdminDashboard({
               >
                 Cobrar no WhatsApp
               </a>
+              <button
+                type="button"
+                onClick={() => setEditing(r)}
+                className="v-btn v-btn-sm"
+              >
+                Editar
+              </button>
               {r.status !== 'confirmado' && (
                 <button
                   type="button"
@@ -323,6 +340,21 @@ export function AdminDashboard({
           </article>
         ))}
       </section>
+
+      {showChangePwd && (
+        <ChangePasswordModal onClose={() => setShowChangePwd(false)} />
+      )}
+
+      {editing && (
+        <EditReservationModal
+          reservation={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(updated) => {
+            updateReservationInList(updated);
+            setEditing(null);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -332,6 +364,339 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="v-card">
       <p className="font-body text-xs tracking-widest uppercase">{label}</p>
       <p className="font-display text-3xl tracking-wider mt-1">{value}</p>
+    </div>
+  );
+}
+
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [pwd, setPwd] = useState('');
+  const [pwd2, setPwd2] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    if (pwd.length < 6) {
+      setMsg({ kind: 'err', text: 'A senha precisa ter pelo menos 6 caracteres.' });
+      return;
+    }
+    if (pwd !== pwd2) {
+      setMsg({ kind: 'err', text: 'As senhas não coincidem.' });
+      return;
+    }
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+    setSaving(false);
+    if (error) {
+      setMsg({ kind: 'err', text: error.message });
+      return;
+    }
+    setMsg({ kind: 'ok', text: 'Senha alterada com sucesso.' });
+    setPwd('');
+    setPwd2('');
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+      role="dialog"
+      aria-modal="true"
+    >
+      <form onSubmit={save} className="v-card w-full max-w-md">
+        <header className="flex justify-between items-center border-b-2 border-ink pb-2 mb-3">
+          <h2 className="font-display text-2xl tracking-widest uppercase">Trocar senha</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="v-btn v-btn-sm !p-1 !px-2 leading-none"
+          >
+            ×
+          </button>
+        </header>
+
+        <label className="block">
+          <span className="font-display tracking-widest uppercase text-sm">Nova senha</span>
+          <input
+            type="password"
+            required
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            className="v-input mt-1"
+            autoFocus
+          />
+        </label>
+        <label className="block mt-3">
+          <span className="font-display tracking-widest uppercase text-sm">Confirmar nova senha</span>
+          <input
+            type="password"
+            required
+            value={pwd2}
+            onChange={(e) => setPwd2(e.target.value)}
+            className="v-input mt-1"
+          />
+        </label>
+
+        {msg && (
+          <div
+            className={`mt-3 border-2 border-ink p-2 font-body text-sm ${
+              msg.kind === 'ok' ? 'bg-bone' : 'bg-white'
+            }`}
+          >
+            {msg.kind === 'ok' ? '✓' : '⚠'} {msg.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 mt-5">
+          <button type="button" onClick={onClose} className="v-btn v-btn-sm">
+            Cancelar
+          </button>
+          <button type="submit" disabled={saving} className="v-btn v-btn-sm">
+            {saving ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EditReservationModal({
+  reservation,
+  onClose,
+  onSaved
+}: {
+  reservation: Reservation;
+  onClose: () => void;
+  onSaved: (r: Reservation) => void;
+}) {
+  const [name, setName] = useState(reservation.full_name);
+  const [phone, setPhone] = useState(reservation.phone);
+  const [email, setEmail] = useState(reservation.email ?? '');
+  const [notes, setNotes] = useState(reservation.notes ?? '');
+  const [items, setItems] = useState<Item[]>(reservation.items.map((i) => ({ ...i })));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const totalAmount = items.reduce((a, i) => a + i.unit_price * i.qty, 0);
+  const reserveAmount = totalAmount / 2;
+
+  function updateItem(idx: number, patch: Partial<Item>) {
+    setItems((cur) =>
+      cur.map((it, i) => {
+        if (i !== idx) return it;
+        const merged = { ...it, ...patch };
+        // Se mudou o tipo, atualiza o unit_price e o typeLabel
+        if (patch.type) {
+          const t = TYPES.find((x) => x.id === patch.type);
+          if (t) {
+            merged.unit_price = t.price;
+            merged.typeLabel = t.label;
+          }
+        }
+        // Se mudou a cor, atualiza colorLabel
+        if (patch.color) {
+          const c = COLORS.find((x) => x.id === patch.color);
+          if (c) merged.colorLabel = c.label;
+        }
+        return merged;
+      })
+    );
+  }
+
+  function removeItem(idx: number) {
+    setItems((cur) => cur.filter((_, i) => i !== idx));
+  }
+
+  function addItem() {
+    const c = COLORS[0];
+    const t = TYPES[0];
+    setItems((cur) => [
+      ...cur,
+      {
+        color: c.id,
+        colorLabel: c.label,
+        size: 'M',
+        type: t.id,
+        typeLabel: t.label,
+        qty: 1,
+        unit_price: t.price
+      }
+    ]);
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!name.trim() || !phone.trim()) {
+      setError('Nome e telefone são obrigatórios.');
+      return;
+    }
+    if (items.length === 0) {
+      setError('A reserva precisa ter pelo menos um item.');
+      return;
+    }
+    setSaving(true);
+    const supabase = createClient();
+    const patch = {
+      full_name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim() || null,
+      notes: notes.trim() || null,
+      items,
+      total_amount: totalAmount,
+      reserve_amount: reserveAmount
+    };
+    const { error: updErr } = await supabase
+      .from('reservations')
+      .update(patch)
+      .eq('id', reservation.id);
+    setSaving(false);
+    if (updErr) {
+      setError(updErr.message);
+      return;
+    }
+    onSaved({ ...reservation, ...patch });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      <form onSubmit={save} className="v-card w-full max-w-2xl my-8">
+        <header className="flex justify-between items-center border-b-2 border-ink pb-2 mb-3">
+          <h2 className="font-display text-2xl tracking-widest uppercase">
+            Editar reserva #{reservation.id.slice(0, 8).toUpperCase()}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="v-btn v-btn-sm !p-1 !px-2 leading-none"
+          >
+            ×
+          </button>
+        </header>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="block sm:col-span-2">
+            <span className="font-display tracking-widest uppercase text-sm">Nome completo *</span>
+            <input
+              className="v-input mt-1"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="font-display tracking-widest uppercase text-sm">Telefone *</span>
+            <input
+              className="v-input mt-1"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="font-display tracking-widest uppercase text-sm">E-mail</span>
+            <input
+              className="v-input mt-1"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="font-display tracking-widest uppercase text-sm">Observações</span>
+            <textarea
+              className="v-input mt-1"
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+          Itens
+        </h3>
+
+        <div className="space-y-2">
+          {items.map((it, idx) => (
+            <div key={idx} className="border-2 border-ink p-3 grid gap-2 sm:grid-cols-[1fr_1fr_5rem_5rem_2.5rem]">
+              <select
+                value={it.color}
+                onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
+                className="v-input"
+              >
+                {COLORS.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+              <select
+                value={it.type}
+                onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
+                className="v-input"
+              >
+                {TYPES.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label} ({brl(t.price)})
+                  </option>
+                ))}
+              </select>
+              <select
+                value={it.size}
+                onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
+                className="v-input"
+              >
+                {SIZES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1}
+                value={it.qty}
+                onChange={(e) => updateItem(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
+                className="v-input"
+              />
+              <button
+                type="button"
+                onClick={() => removeItem(idx)}
+                aria-label="Remover item"
+                className="v-btn v-btn-sm !p-1"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button type="button" onClick={addItem} className="v-btn v-btn-sm mt-3">
+          + Adicionar item
+        </button>
+
+        <div className="mt-4 pt-3 border-t-2 border-ink flex justify-between font-display text-xl uppercase">
+          <span>Total: {brl(totalAmount)}</span>
+          <span>Reserva 50%: {brl(reserveAmount)}</span>
+        </div>
+
+        {error && (
+          <div className="mt-3 border-2 border-ink bg-white p-2 font-body text-sm">
+            ⚠ {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 mt-5">
+          <button type="button" onClick={onClose} className="v-btn v-btn-sm">
+            Cancelar
+          </button>
+          <button type="submit" disabled={saving} className="v-btn v-btn-sm">
+            {saving ? 'Salvando...' : 'Salvar alterações'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
