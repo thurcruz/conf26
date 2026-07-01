@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -58,6 +58,7 @@ export function AdminDashboard({
   const [showChangePwd, setShowChangePwd] = useState(false);
   const [editing, setEditing] = useState<Reservation | null>(null);
   const [creating, setCreating] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const filtered = useMemo(() => {
     return list.filter((r) => {
@@ -138,28 +139,24 @@ export function AdminDashboard({
     );
   }
 
-  async function downloadProof(r: Reservation) {
+  function downloadProof(r: Reservation) {
     if (!r.payment_proof_url) return;
-    try {
-      const res = await fetch(r.payment_proof_url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const urlPath = new URL(r.payment_proof_url).pathname;
-      const extMatch = urlPath.match(/\.([a-zA-Z0-9]+)$/);
-      const ext = extMatch ? extMatch[1] : 'bin';
-      const firstName = r.full_name.trim().split(/\s+/)[0].toLowerCase();
-      const filename = `comprovante_${firstName}_${r.id.slice(0, 8)}.${ext}`;
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    } catch (err: any) {
-      alert('Não foi possível baixar o comprovante: ' + (err?.message ?? err));
-    }
+    const url = r.payment_proof_url;
+    const urlPath = new URL(url).pathname;
+    const extMatch = urlPath.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1] : 'bin';
+    const firstName = r.full_name.trim().split(/\s+/)[0].toLowerCase();
+    const filename = `comprovante_${firstName}_${r.id.slice(0, 8)}.${ext}`;
+    // Supabase Storage: ?download=<name> faz o servidor enviar
+    // Content-Disposition: attachment, forcando download real em mobile.
+    const sep = url.includes('?') ? '&' : '?';
+    const downloadUrl = `${url}${sep}download=${encodeURIComponent(filename)}`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   async function remove(id: string) {
@@ -181,23 +178,7 @@ export function AdminDashboard({
   }
 
   function exportPrint() {
-    const rows = [...filtered].sort((a, b) =>
-      a.full_name.localeCompare(b.full_name, 'pt-BR')
-    );
-    const html = buildPrintHtml(rows, filter);
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const stamp = new Date()
-      .toISOString()
-      .slice(0, 16)
-      .replace(/[:T]/g, '-');
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `relatorio-camisas-${stamp}.html`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    setShowReport(true);
   }
 
   function updateReservationInList(updated: Reservation) {
@@ -218,7 +199,7 @@ export function AdminDashboard({
               + Novo pedido
             </button>
             <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
-              Baixar relatório
+              Relatório
             </button>
             <button type="button" onClick={() => setShowChangePwd(true)} className="v-btn v-btn-sm">
               Trocar senha
@@ -433,7 +414,70 @@ export function AdminDashboard({
           }}
         />
       )}
+
+      {showReport && (
+        <ReportOverlay
+          rows={[...filtered].sort((a, b) =>
+            a.full_name.localeCompare(b.full_name, 'pt-BR')
+          )}
+          filter={filter}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </main>
+  );
+}
+
+function ReportOverlay({
+  rows,
+  filter,
+  onClose
+}: {
+  rows: Reservation[];
+  filter: string;
+  onClose: () => void;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const html = buildPrintHtml(rows, filter);
+
+  function print() {
+    const w = iframeRef.current?.contentWindow;
+    if (!w) return;
+    try {
+      w.focus();
+      w.print();
+    } catch {
+      alert('Não foi possível iniciar a impressão.');
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink/80 flex flex-col p-3"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Relatório de reservas"
+    >
+      <div className="flex justify-between items-center gap-2 mb-2 flex-wrap">
+        <h2 className="font-display text-2xl tracking-widest uppercase text-paper drop-shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
+          Relatório de reservas
+        </h2>
+        <div className="flex gap-2">
+          <button type="button" onClick={print} className="v-btn v-btn-sm">
+            Imprimir / Salvar PDF
+          </button>
+          <button type="button" onClick={onClose} className="v-btn v-btn-sm">
+            Fechar
+          </button>
+        </div>
+      </div>
+      <iframe
+        ref={iframeRef}
+        title="Relatório de reservas"
+        srcDoc={html}
+        className="flex-1 w-full bg-white border-2 border-ink"
+      />
+    </div>
   );
 }
 
@@ -539,7 +583,6 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
 </style>
 </head>
 <body>
-  <div class="btns"><button onclick="window.print()">Imprimir</button></div>
   <h1>Conferência 2026 — Entrega de Camisas</h1>
   <div class="meta">
     <span><b>Gerado em:</b> ${escapeHtml(now)}</span>
@@ -567,7 +610,6 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
     </tbody>
   </table>
   <p class="footer">Marque o ✓ ao entregar a camisa. Peça a assinatura do responsável ao lado.</p>
-  <script>setTimeout(function(){ window.print(); }, 300);<\/script>
 </body>
 </html>`;
 }
