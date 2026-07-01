@@ -70,24 +70,25 @@ export function CartDrawer() {
     <>
       {mounted && showToast && !open && (
         <div
-          className="fixed bottom-5 right-[4.5rem] z-40 flex items-center pointer-events-none animate-toast-in"
+          className="fixed bottom-5 right-[4.5rem] z-40 flex items-center pointer-events-none animate-toast-in drop-shadow-[3px_3px_0_rgba(0,0,0,1)]"
           role="status"
           aria-live="polite"
         >
-          <div className="border-2 border-r-0 border-paper text-paper font-display tracking-widest uppercase text-xs sm:text-sm px-3 py-2 whitespace-nowrap drop-shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
+          <div className="border-2 border-r-0 border-ink bg-white text-ink font-display tracking-widest uppercase text-xs sm:text-sm px-3 py-2 whitespace-nowrap">
             Seu pedido foi adicionado aqui
           </div>
           <svg
-            width="12"
-            height="34"
-            viewBox="0 0 12 34"
+            width="8"
+            height="16"
+            viewBox="0 0 8 16"
             fill="none"
-            className="-ml-[2px] drop-shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+            className="-ml-[2px]"
             aria-hidden="true"
           >
+            <polygon points="0,1 8,8 0,15" fill="#ffffff" stroke="none" />
             <polyline
-              points="0,1 12,17 0,33"
-              stroke="#f5f1e8"
+              points="0,1 8,8 0,15"
+              stroke="#0a0a0a"
               strokeWidth="2"
               strokeLinejoin="miter"
               fill="none"
