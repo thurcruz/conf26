@@ -155,6 +155,21 @@ export function AdminDashboard({
     router.refresh();
   }
 
+  function exportPrint() {
+    const rows = [...filtered].sort((a, b) =>
+      a.full_name.localeCompare(b.full_name, 'pt-BR')
+    );
+    const html = buildPrintHtml(rows, filter);
+    const w = window.open('', '_blank', 'width=1100,height=800');
+    if (!w) {
+      alert('Bloqueador de pop-up impediu a abertura. Libere e tente de novo.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }
+
   function updateReservationInList(updated: Reservation) {
     setList((cur) => cur.map((r) => (r.id === updated.id ? updated : r)));
   }
@@ -169,6 +184,9 @@ export function AdminDashboard({
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link href="/" className="v-btn v-btn-sm">Site</Link>
+            <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
+              Exportar relatório
+            </button>
             <button type="button" onClick={() => setShowChangePwd(true)} className="v-btn v-btn-sm">
               Trocar senha
             </button>
@@ -374,6 +392,132 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="font-display text-3xl tracking-wider mt-1">{value}</p>
     </div>
   );
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildPrintHtml(rows: Reservation[], filter: string): string {
+  const now = new Date().toLocaleString('pt-BR');
+  const totalCamisas = rows.reduce(
+    (a, r) => a + r.items.reduce((b, i) => b + i.qty, 0),
+    0
+  );
+  const totalPendente = rows.reduce(
+    (a, r) => a + (r.paid_in_full ? 0 : Number(r.total_amount) - Number(r.reserve_amount)),
+    0
+  );
+
+  const trs = rows
+    .map((r) => {
+      const itemsHtml = r.items
+        .map(
+          (i) =>
+            `${i.qty}× ${escapeHtml(i.colorLabel)} <b>${escapeHtml(i.size)}</b> (${escapeHtml(i.typeLabel)})`
+        )
+        .join('<br>');
+      const restante = r.paid_in_full
+        ? '—'
+        : `R$ ${(Number(r.total_amount) - Number(r.reserve_amount)).toFixed(2).replace('.', ',')}`;
+      return `
+        <tr>
+          <td class="chk"></td>
+          <td>${escapeHtml(r.full_name)}</td>
+          <td class="phone">${escapeHtml(r.phone)}</td>
+          <td>${itemsHtml}</td>
+          <td class="num">R$ ${Number(r.total_amount).toFixed(2).replace('.', ',')}</td>
+          <td class="num">R$ ${Number(r.reserve_amount).toFixed(2).replace('.', ',')}</td>
+          <td class="num">${restante}</td>
+          <td class="status">${r.paid_in_full ? 'PAGO 100%' : escapeHtml(r.status)}</td>
+          <td class="sig"></td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Relatório de reservas — Conferência 2026</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    color: #0a0a0a;
+    margin: 24px;
+  }
+  h1 { font-family: Impact, sans-serif; letter-spacing: 2px; margin: 0 0 4px; }
+  .meta { font-size: 12px; margin-bottom: 12px; display: flex; gap: 20px; flex-wrap: wrap; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #0a0a0a; padding: 6px 8px; vertical-align: top; }
+  thead th {
+    background: #0a0a0a; color: #f5f1e8;
+    font-family: Impact, sans-serif; letter-spacing: 1px;
+    font-weight: normal; text-align: left;
+  }
+  tbody tr:nth-child(even) { background: #f5f1e8; }
+  .chk { width: 26px; text-align: center; }
+  .chk::before {
+    content: ''; display: inline-block; width: 14px; height: 14px;
+    border: 2px solid #0a0a0a;
+  }
+  .num, .phone, .status { white-space: nowrap; }
+  .num { text-align: right; }
+  .sig { min-width: 100px; }
+  .footer { margin-top: 12px; font-size: 11px; opacity: 0.8; }
+  .btns { margin-bottom: 12px; }
+  .btns button {
+    font-family: Impact, sans-serif; letter-spacing: 1px;
+    background: #0a0a0a; color: #f5f1e8;
+    padding: 6px 14px; border: none; cursor: pointer;
+  }
+  @media print {
+    body { margin: 12mm; }
+    .btns { display: none; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="btns"><button onclick="window.print()">Imprimir</button></div>
+  <h1>Conferência 2026 — Entrega de Camisas</h1>
+  <div class="meta">
+    <span><b>Gerado em:</b> ${escapeHtml(now)}</span>
+    <span><b>Filtro:</b> ${escapeHtml(filter)}</span>
+    <span><b>Total de reservas:</b> ${rows.length}</span>
+    <span><b>Total de camisas:</b> ${totalCamisas}</span>
+    <span><b>A receber na retirada:</b> R$ ${totalPendente.toFixed(2).replace('.', ',')}</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="chk">✓</th>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Itens</th>
+        <th class="num">Total</th>
+        <th class="num">Pago</th>
+        <th class="num">Restante</th>
+        <th>Status</th>
+        <th>Assinatura</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${trs || '<tr><td colspan="9" style="text-align:center;padding:16px">Sem reservas neste filtro.</td></tr>'}
+    </tbody>
+  </table>
+  <p class="footer">Marque o ✓ ao entregar a camisa. Peça a assinatura do responsável ao lado.</p>
+  <script>setTimeout(function(){ window.print(); }, 300);<\/script>
+</body>
+</html>`;
 }
 
 function ChangePasswordModal({ onClose }: { onClose: () => void }) {
