@@ -303,7 +303,7 @@ export function AdminDashboard({
                   onClick={() => changeStatus(r.id, 'confirmado')}
                   className="v-btn v-btn-sm"
                 >
-                  Confirmar
+                  Confirmar reserva
                 </button>
               )}
               {!r.paid_in_full ? (
@@ -312,7 +312,7 @@ export function AdminDashboard({
                   onClick={() => togglePaid(r.id, true)}
                   className="v-btn v-btn-sm"
                 >
-                  Pago
+                  Total pago
                 </button>
               ) : (
                 <button
@@ -320,7 +320,7 @@ export function AdminDashboard({
                   onClick={() => togglePaid(r.id, false)}
                   className="v-btn v-btn-sm"
                 >
-                  Desfazer pago
+                  Desfazer total pago
                 </button>
               )}
               {r.status !== 'pendente' && (
