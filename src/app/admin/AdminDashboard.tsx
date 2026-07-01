@@ -137,6 +137,30 @@ export function AdminDashboard({
     );
   }
 
+  async function downloadProof(r: Reservation) {
+    if (!r.payment_proof_url) return;
+    try {
+      const res = await fetch(r.payment_proof_url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const urlPath = new URL(r.payment_proof_url).pathname;
+      const extMatch = urlPath.match(/\.([a-zA-Z0-9]+)$/);
+      const ext = extMatch ? extMatch[1] : 'bin';
+      const firstName = r.full_name.trim().split(/\s+/)[0].toLowerCase();
+      const filename = `comprovante_${firstName}_${r.id.slice(0, 8)}.${ext}`;
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (err: any) {
+      alert('Não foi possível baixar o comprovante: ' + (err?.message ?? err));
+    }
+  }
+
   async function remove(id: string) {
     if (!confirm('Excluir esta reserva?')) return;
     const supabase = createClient();
@@ -270,14 +294,23 @@ export function AdminDashboard({
 
             <div className="mt-3 flex flex-wrap gap-2">
               {r.payment_proof_url ? (
-                <a
-                  href={r.payment_proof_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="v-btn v-btn-sm"
-                >
-                  Ver comprovante
-                </a>
+                <>
+                  <a
+                    href={r.payment_proof_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="v-btn v-btn-sm"
+                  >
+                    Ver comprovante
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => downloadProof(r)}
+                    className="v-btn v-btn-sm"
+                  >
+                    Baixar
+                  </button>
+                </>
               ) : (
                 <span className="font-body text-sm italic self-center">
                   {r.whatsapp_sent ? 'Comprovante via WhatsApp' : 'Sem comprovante'}
