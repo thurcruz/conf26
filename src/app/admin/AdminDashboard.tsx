@@ -57,6 +57,7 @@ export function AdminDashboard({
   const [search, setSearch] = useState('');
   const [showChangePwd, setShowChangePwd] = useState(false);
   const [editing, setEditing] = useState<Reservation | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const filtered = useMemo(() => {
     return list.filter((r) => {
@@ -213,6 +214,9 @@ export function AdminDashboard({
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link href="/" className="v-btn v-btn-sm">Site</Link>
+            <button type="button" onClick={() => setCreating(true)} className="v-btn v-btn-sm">
+              + Novo pedido
+            </button>
             <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
               Baixar relatório
             </button>
@@ -416,6 +420,16 @@ export function AdminDashboard({
           onSaved={(updated) => {
             updateReservationInList(updated);
             setEditing(null);
+          }}
+        />
+      )}
+
+      {creating && (
+        <NewReservationModal
+          onClose={() => setCreating(false)}
+          onCreated={(r) => {
+            setList((cur) => [r, ...cur]);
+            setCreating(false);
           }}
         />
       )}
@@ -889,6 +903,316 @@ function EditReservationModal({
           </button>
           <button type="submit" disabled={saving} className="v-btn v-btn-sm">
             {saving ? 'Salvando...' : 'Salvar alterações'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function NewReservationModal({
+  onClose,
+  onCreated
+}: {
+  onClose: () => void;
+  onCreated: (r: Reservation) => void;
+}) {
+  const firstColor = COLORS[0];
+  const firstType = TYPES[0];
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [notes, setNotes] = useState('');
+  const [status, setStatus] = useState<Reservation['status']>('confirmado');
+  const [payMode, setPayMode] = useState<'reserve' | 'full'>('reserve');
+  const [items, setItems] = useState<Item[]>([
+    {
+      color: firstColor.id,
+      colorLabel: firstColor.label,
+      size: firstType.sizes[0],
+      type: firstType.id,
+      typeLabel: firstType.label,
+      qty: 1,
+      unit_price: firstType.price
+    }
+  ]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const totalAmount = items.reduce((a, i) => a + i.unit_price * i.qty, 0);
+  const reserveAmount = payMode === 'full' ? totalAmount : totalAmount / 2;
+
+  function updateItem(idx: number, patch: Partial<Item>) {
+    setItems((cur) =>
+      cur.map((it, i) => {
+        if (i !== idx) return it;
+        const merged = { ...it, ...patch };
+        if (patch.type) {
+          const t = TYPES.find((x) => x.id === patch.type);
+          if (t) {
+            merged.unit_price = t.price;
+            merged.typeLabel = t.label;
+            const allowed = sizesForType(patch.type);
+            if (!allowed.includes(merged.size)) merged.size = allowed[0];
+          }
+        }
+        if (patch.color) {
+          const c = COLORS.find((x) => x.id === patch.color);
+          if (c) merged.colorLabel = c.label;
+        }
+        return merged;
+      })
+    );
+  }
+  function removeItem(idx: number) {
+    setItems((cur) => cur.filter((_, i) => i !== idx));
+  }
+  function addItem() {
+    const c = COLORS[0];
+    const t = TYPES[0];
+    setItems((cur) => [
+      ...cur,
+      {
+        color: c.id,
+        colorLabel: c.label,
+        size: t.sizes[0],
+        type: t.id,
+        typeLabel: t.label,
+        qty: 1,
+        unit_price: t.price
+      }
+    ]);
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!name.trim() || !phone.trim()) {
+      setError('Nome e telefone são obrigatórios.');
+      return;
+    }
+    if (items.length === 0) {
+      setError('A reserva precisa ter pelo menos um item.');
+      return;
+    }
+    setSaving(true);
+    const id = crypto.randomUUID();
+    const supabase = createClient();
+    const paidInFull = payMode === 'full';
+    const now = new Date().toISOString();
+    const row: Reservation = {
+      id,
+      full_name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim() || null,
+      items,
+      total_amount: totalAmount,
+      reserve_amount: reserveAmount,
+      payment_proof_url: null,
+      whatsapp_sent: false,
+      status,
+      paid_in_full: paidInFull,
+      notes: notes.trim() || null,
+      created_at: now
+    };
+    const { error: insErr } = await supabase.from('reservations').insert({
+      id,
+      full_name: row.full_name,
+      phone: row.phone,
+      email: row.email,
+      items: row.items,
+      total_amount: row.total_amount,
+      reserve_amount: row.reserve_amount,
+      status: row.status,
+      paid_in_full: row.paid_in_full,
+      notes: row.notes,
+      whatsapp_sent: false,
+      payment_proof_url: null
+    });
+    setSaving(false);
+    if (insErr) {
+      setError(insErr.message);
+      return;
+    }
+    onCreated(row);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      <form onSubmit={save} className="v-card w-full max-w-2xl my-8">
+        <header className="flex justify-between items-center border-b-2 border-ink pb-2 mb-3">
+          <h2 className="font-display text-2xl tracking-widest uppercase">Novo pedido</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="v-btn v-btn-sm !p-1 !px-2 leading-none"
+          >
+            ×
+          </button>
+        </header>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="block sm:col-span-2">
+            <span className="font-display tracking-widest uppercase text-sm">Nome completo *</span>
+            <input
+              className="v-input mt-1"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </label>
+          <label className="block">
+            <span className="font-display tracking-widest uppercase text-sm">Telefone *</span>
+            <input
+              className="v-input mt-1"
+              placeholder="(21) 9 0000-0000"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="font-display tracking-widest uppercase text-sm">E-mail</span>
+            <input
+              className="v-input mt-1"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="font-display tracking-widest uppercase text-sm">Observações</span>
+            <textarea
+              className="v-input mt-1"
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+          Itens
+        </h3>
+
+        <div className="space-y-2">
+          {items.map((it, idx) => (
+            <div key={idx} className="border-2 border-ink p-3 grid gap-2 sm:grid-cols-[1fr_1fr_5rem_5rem_2.5rem]">
+              <select
+                value={it.color}
+                onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
+                className="v-input"
+              >
+                {COLORS.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+              <select
+                value={it.type}
+                onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
+                className="v-input"
+              >
+                {TYPES.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label} ({brl(t.price)})
+                  </option>
+                ))}
+              </select>
+              <select
+                value={it.size}
+                onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
+                className="v-input"
+              >
+                {sizesForType(it.type).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1}
+                value={it.qty}
+                onChange={(e) => updateItem(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
+                className="v-input"
+              />
+              <button
+                type="button"
+                onClick={() => removeItem(idx)}
+                aria-label="Remover item"
+                className="v-btn v-btn-sm !p-1"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button type="button" onClick={addItem} className="v-btn v-btn-sm mt-3">
+          + Adicionar item
+        </button>
+
+        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+          Pagamento
+        </h3>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setPayMode('reserve')}
+            className={`v-chip w-full justify-between !py-3 ${
+              payMode === 'reserve' ? 'v-chip-active' : ''
+            }`}
+          >
+            <span>Reserva 50%</span>
+            <strong>{brl(totalAmount / 2)}</strong>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPayMode('full')}
+            className={`v-chip w-full justify-between !py-3 ${
+              payMode === 'full' ? 'v-chip-active' : ''
+            }`}
+          >
+            <span>Pagou tudo</span>
+            <strong>{brl(totalAmount)}</strong>
+          </button>
+        </div>
+
+        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+          Status inicial
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {(['pendente', 'confirmado'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatus(s)}
+              className={`v-chip ${status === s ? 'v-chip-active' : ''}`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 pt-3 border-t-2 border-ink flex justify-between font-display text-xl uppercase">
+          <span>Total: {brl(totalAmount)}</span>
+          <span>{payMode === 'full' ? 'Pago' : 'Reserva 50%'}: {brl(reserveAmount)}</span>
+        </div>
+
+        {error && (
+          <div className="mt-3 border-2 border-ink bg-white p-2 font-body text-sm">
+            ⚠ {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 mt-5">
+          <button type="button" onClick={onClose} className="v-btn v-btn-sm">
+            Cancelar
+          </button>
+          <button type="submit" disabled={saving} className="v-btn v-btn-sm">
+            {saving ? 'Salvando...' : 'Criar pedido'}
           </button>
         </div>
       </form>
