@@ -61,9 +61,41 @@ export default function AdminLogin() {
               onClick={() => setShowPwd((v) => !v)}
               aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}
               aria-pressed={showPwd}
-              className="v-btn v-btn-sm !px-3"
+              className="v-btn v-btn-sm !p-2"
             >
-              {showPwd ? 'Ocultar' : 'Mostrar'}
+              {showPwd ? (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="square"
+                  strokeLinejoin="miter"
+                  aria-hidden="true"
+                >
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.6 19.6 0 0 1 4.22-5.06" />
+                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.65 19.65 0 0 1-3.16 4.19" />
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="square"
+                  strokeLinejoin="miter"
+                  aria-hidden="true"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
             </button>
           </div>
         </label>
