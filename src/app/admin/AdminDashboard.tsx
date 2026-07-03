@@ -28,9 +28,17 @@ type Reservation = {
   whatsapp_sent: boolean;
   status: 'pendente' | 'confirmado' | 'cancelado';
   paid_in_full: boolean;
+  payment_method: 'pix' | 'cartao' | 'dinheiro' | null;
   notes: string | null;
   created_at: string;
 };
+
+const PAYMENT_METHODS = [
+  { id: 'pix', label: 'PIX' },
+  { id: 'cartao', label: 'Cartão' },
+  { id: 'dinheiro', label: 'Dinheiro' }
+] as const;
+type PaymentMethod = typeof PAYMENT_METHODS[number]['id'];
 
 function brl(n: number) {
   return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -273,6 +281,11 @@ export function AdminDashboard({
                 {r.paid_in_full && (
                   <span className="v-chip v-chip-active">pago 100%</span>
                 )}
+                {r.payment_method && (
+                  <span className="v-chip">
+                    {PAYMENT_METHODS.find((m) => m.id === r.payment_method)?.label}
+                  </span>
+                )}
               </div>
             </header>
 
@@ -488,6 +501,28 @@ function ReportOverlay({
   );
 }
 
+function TrashIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+    >
+      <polyline points="3,6 5,6 21,6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="v-card">
@@ -528,6 +563,11 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
       const restante = r.paid_in_full
         ? '—'
         : `R$ ${(Number(r.total_amount) - Number(r.reserve_amount)).toFixed(2).replace('.', ',')}`;
+      const pm = r.payment_method
+        ? escapeHtml(
+            PAYMENT_METHODS.find((m) => m.id === r.payment_method)?.label ?? ''
+          )
+        : '—';
       return `
         <tr>
           <td class="chk"></td>
@@ -537,6 +577,7 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
           <td class="num">R$ ${Number(r.total_amount).toFixed(2).replace('.', ',')}</td>
           <td class="num">R$ ${Number(r.reserve_amount).toFixed(2).replace('.', ',')}</td>
           <td class="num">${restante}</td>
+          <td class="status">${pm}</td>
           <td class="status">${r.paid_in_full ? 'PAGO 100%' : escapeHtml(r.status)}</td>
           <td class="sig"></td>
         </tr>
@@ -608,12 +649,13 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
         <th class="num">Total</th>
         <th class="num">Pago</th>
         <th class="num">Restante</th>
+        <th>Forma</th>
         <th>Status</th>
         <th>Assinatura</th>
       </tr>
     </thead>
     <tbody>
-      ${trs || '<tr><td colspan="9" style="text-align:center;padding:16px">Sem reservas neste filtro.</td></tr>'}
+      ${trs || '<tr><td colspan="10" style="text-align:center;padding:16px">Sem reservas neste filtro.</td></tr>'}
     </tbody>
   </table>
   <p class="footer">Marque o ✓ ao entregar a camisa. Peça a assinatura do responsável ao lado.</p>
@@ -729,11 +771,20 @@ function EditReservationModal({
   const [email, setEmail] = useState(reservation.email ?? '');
   const [notes, setNotes] = useState(reservation.notes ?? '');
   const [items, setItems] = useState<Item[]>(reservation.items.map((i) => ({ ...i })));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
+    reservation.payment_method
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const totalAmount = items.reduce((a, i) => a + i.unit_price * i.qty, 0);
   const reserveAmount = totalAmount / 2;
+
+  function bumpQty(idx: number, delta: number) {
+    setItems((cur) =>
+      cur.map((it, i) => (i === idx ? { ...it, qty: Math.max(1, it.qty + delta) } : it))
+    );
+  }
 
   function updateItem(idx: number, patch: Partial<Item>) {
     setItems((cur) =>
@@ -804,7 +855,8 @@ function EditReservationModal({
       notes: notes.trim() || null,
       items,
       total_amount: totalAmount,
-      reserve_amount: reserveAmount
+      reserve_amount: reserveAmount,
+      payment_method: paymentMethod
     };
     const { error: updErr } = await supabase
       .from('reservations')
@@ -845,6 +897,7 @@ function EditReservationModal({
             <span className="font-display tracking-widest uppercase text-sm">Nome completo *</span>
             <input
               className="v-input mt-1"
+              placeholder="Ex: João da Silva"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -853,6 +906,7 @@ function EditReservationModal({
             <span className="font-display tracking-widest uppercase text-sm">Telefone *</span>
             <input
               className="v-input mt-1"
+              placeholder="Ex: (21) 96482-9407"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
@@ -866,6 +920,7 @@ function EditReservationModal({
               type="text"
               inputMode="email"
               autoComplete="email"
+              placeholder="Ex: joao@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -875,6 +930,7 @@ function EditReservationModal({
             <textarea
               className="v-input mt-1"
               rows={2}
+              placeholder="Ex: retira no domingo depois do culto"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -885,53 +941,83 @@ function EditReservationModal({
           Itens
         </h3>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {items.map((it, idx) => (
-            <div key={idx} className="border-2 border-ink p-3 grid gap-2 sm:grid-cols-[1fr_1fr_5rem_5rem_2.5rem]">
-              <select
-                value={it.color}
-                onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
-                className="v-input"
-              >
-                {COLORS.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-              <select
-                value={it.type}
-                onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
-                className="v-input"
-              >
-                {TYPES.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label} ({brl(t.price)})
-                  </option>
-                ))}
-              </select>
-              <select
-                value={it.size}
-                onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
-                className="v-input"
-              >
-                {sizesForType(it.type).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min={1}
-                value={it.qty}
-                onChange={(e) => updateItem(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
-                className="v-input"
-              />
-              <button
-                type="button"
-                onClick={() => removeItem(idx)}
-                aria-label="Remover item"
-                className="v-btn v-btn-sm !p-1"
-              >
-                ×
-              </button>
+            <div key={idx} className="border-2 border-ink p-3 flex flex-col gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <label className="block">
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Cor</span>
+                  <select
+                    value={it.color}
+                    onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
+                    className="v-input mt-1"
+                  >
+                    {COLORS.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Modelo</span>
+                  <select
+                    value={it.type}
+                    onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
+                    className="v-input mt-1"
+                  >
+                    {TYPES.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label} ({brl(t.price)})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Tamanho</span>
+                  <select
+                    value={it.size}
+                    onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
+                    className="v-input mt-1"
+                  >
+                    {sizesForType(it.type).map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="flex items-end justify-between gap-2 flex-wrap">
+                <div>
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Quantidade</span>
+                  <div className="mt-1 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => bumpQty(idx, -1)}
+                      aria-label="Diminuir quantidade"
+                      className="v-btn v-btn-sm !px-3"
+                    >
+                      −
+                    </button>
+                    <span className="font-display text-2xl tabular-nums w-10 text-center">
+                      {it.qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => bumpQty(idx, 1)}
+                      aria-label="Aumentar quantidade"
+                      className="v-btn v-btn-sm !px-3"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeItem(idx)}
+                  className="v-btn v-btn-sm inline-flex items-center gap-1"
+                >
+                  <TrashIcon />
+                  Remover
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -939,6 +1025,24 @@ function EditReservationModal({
         <button type="button" onClick={addItem} className="v-btn v-btn-sm mt-3">
           + Adicionar item
         </button>
+
+        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+          Forma de pagamento
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {PAYMENT_METHODS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() =>
+                setPaymentMethod((cur) => (cur === m.id ? null : m.id))
+              }
+              className={`v-chip ${paymentMethod === m.id ? 'v-chip-active' : ''}`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
 
         <div className="mt-4 pt-3 border-t-2 border-ink flex justify-between font-display text-xl uppercase">
           <span>Total: {brl(totalAmount)}</span>
@@ -980,6 +1084,7 @@ function NewReservationModal({
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<Reservation['status']>('confirmado');
   const [payMode, setPayMode] = useState<'reserve' | 'full'>('reserve');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
   const [items, setItems] = useState<Item[]>([
     {
       color: firstColor.id,
@@ -993,6 +1098,12 @@ function NewReservationModal({
   ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function bumpQty(idx: number, delta: number) {
+    setItems((cur) =>
+      cur.map((it, i) => (i === idx ? { ...it, qty: Math.max(1, it.qty + delta) } : it))
+    );
+  }
 
   const totalAmount = items.reduce((a, i) => a + i.unit_price * i.qty, 0);
   const reserveAmount = payMode === 'full' ? totalAmount : totalAmount / 2;
@@ -1067,6 +1178,7 @@ function NewReservationModal({
       whatsapp_sent: false,
       status,
       paid_in_full: paidInFull,
+      payment_method: paymentMethod,
       notes: notes.trim() || null,
       created_at: now
     };
@@ -1080,6 +1192,7 @@ function NewReservationModal({
       reserve_amount: row.reserve_amount,
       status: row.status,
       paid_in_full: row.paid_in_full,
+      payment_method: row.payment_method,
       notes: row.notes,
       whatsapp_sent: false,
       payment_proof_url: null
@@ -1117,6 +1230,7 @@ function NewReservationModal({
             <span className="font-display tracking-widest uppercase text-sm">Nome completo *</span>
             <input
               className="v-input mt-1"
+              placeholder="Ex: João da Silva"
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoFocus
@@ -1126,7 +1240,7 @@ function NewReservationModal({
             <span className="font-display tracking-widest uppercase text-sm">Telefone *</span>
             <input
               className="v-input mt-1"
-              placeholder="(21) 9 0000-0000"
+              placeholder="Ex: (21) 96482-9407"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
@@ -1140,6 +1254,7 @@ function NewReservationModal({
               type="text"
               inputMode="email"
               autoComplete="email"
+              placeholder="Ex: joao@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -1149,6 +1264,7 @@ function NewReservationModal({
             <textarea
               className="v-input mt-1"
               rows={2}
+              placeholder="Ex: retira no domingo depois do culto"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -1159,53 +1275,83 @@ function NewReservationModal({
           Itens
         </h3>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {items.map((it, idx) => (
-            <div key={idx} className="border-2 border-ink p-3 grid gap-2 sm:grid-cols-[1fr_1fr_5rem_5rem_2.5rem]">
-              <select
-                value={it.color}
-                onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
-                className="v-input"
-              >
-                {COLORS.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-              <select
-                value={it.type}
-                onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
-                className="v-input"
-              >
-                {TYPES.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label} ({brl(t.price)})
-                  </option>
-                ))}
-              </select>
-              <select
-                value={it.size}
-                onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
-                className="v-input"
-              >
-                {sizesForType(it.type).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min={1}
-                value={it.qty}
-                onChange={(e) => updateItem(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
-                className="v-input"
-              />
-              <button
-                type="button"
-                onClick={() => removeItem(idx)}
-                aria-label="Remover item"
-                className="v-btn v-btn-sm !p-1"
-              >
-                ×
-              </button>
+            <div key={idx} className="border-2 border-ink p-3 flex flex-col gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <label className="block">
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Cor</span>
+                  <select
+                    value={it.color}
+                    onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
+                    className="v-input mt-1"
+                  >
+                    {COLORS.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Modelo</span>
+                  <select
+                    value={it.type}
+                    onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
+                    className="v-input mt-1"
+                  >
+                    {TYPES.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label} ({brl(t.price)})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Tamanho</span>
+                  <select
+                    value={it.size}
+                    onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
+                    className="v-input mt-1"
+                  >
+                    {sizesForType(it.type).map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="flex items-end justify-between gap-2 flex-wrap">
+                <div>
+                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Quantidade</span>
+                  <div className="mt-1 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => bumpQty(idx, -1)}
+                      aria-label="Diminuir quantidade"
+                      className="v-btn v-btn-sm !px-3"
+                    >
+                      −
+                    </button>
+                    <span className="font-display text-2xl tabular-nums w-10 text-center">
+                      {it.qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => bumpQty(idx, 1)}
+                      aria-label="Aumentar quantidade"
+                      className="v-btn v-btn-sm !px-3"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeItem(idx)}
+                  className="v-btn v-btn-sm inline-flex items-center gap-1"
+                >
+                  <TrashIcon />
+                  Remover
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -1238,6 +1384,20 @@ function NewReservationModal({
             <span>Pagou tudo</span>
             <strong>{brl(totalAmount)}</strong>
           </button>
+        </div>
+
+        <p className="font-display tracking-widest uppercase text-xs mt-3 opacity-80">Forma de pagamento</p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {PAYMENT_METHODS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setPaymentMethod(m.id)}
+              className={`v-chip ${paymentMethod === m.id ? 'v-chip-active' : ''}`}
+            >
+              {m.label}
+            </button>
+          ))}
         </div>
 
         <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
