@@ -820,12 +820,13 @@ function EditReservationModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-ink/60 overflow-y-auto overscroll-contain"
       role="dialog"
       aria-modal="true"
     >
-      <form onSubmit={save} className="v-card w-full max-w-2xl my-8">
-        <header className="flex justify-between items-center border-b-2 border-ink pb-2 mb-3">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-3 sm:p-4">
+      <form onSubmit={save} className="v-card w-full max-w-2xl my-4">
+        <header className="sticky -top-5 -mx-5 px-5 pt-5 pb-2 bg-white border-b-2 border-ink mb-3 flex justify-between items-center z-10">
           <h2 className="font-display text-2xl tracking-widest uppercase">
             Editar reserva #{reservation.id.slice(0, 8).toUpperCase()}
           </h2>
@@ -959,6 +960,7 @@ function EditReservationModal({
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
@@ -1092,12 +1094,13 @@ function NewReservationModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-ink/60 overflow-y-auto overscroll-contain"
       role="dialog"
       aria-modal="true"
     >
-      <form onSubmit={save} className="v-card w-full max-w-2xl my-8">
-        <header className="flex justify-between items-center border-b-2 border-ink pb-2 mb-3">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-3 sm:p-4">
+      <form onSubmit={save} className="v-card w-full max-w-2xl my-4">
+        <header className="sticky -top-5 -mx-5 px-5 pt-5 pb-2 bg-white border-b-2 border-ink mb-3 flex justify-between items-center z-10">
           <h2 className="font-display text-2xl tracking-widest uppercase">Novo pedido</h2>
           <button
             type="button"
@@ -1273,6 +1276,7 @@ function NewReservationModal({
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
