@@ -4,8 +4,19 @@ import { Background3D } from '@/components/Background3D';
 import { ShirtPicker } from '@/components/ShirtPicker';
 import { SizeChart } from '@/components/SizeChart';
 import { CartDrawer } from '@/components/CartDrawer';
+import { createClient } from '@/lib/supabase/server';
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+export default async function Home() {
+  const supabase = createClient();
+  const { data: settings } = await supabase
+    .from('settings')
+    .select('sales_paused')
+    .eq('id', true)
+    .single();
+  const salesPaused = settings?.sales_paused ?? false;
+
   return (
     <main className="relative min-h-screen flex flex-col text-paper">
       <Background3D />
@@ -41,7 +52,18 @@ export default function Home() {
           </p>
         </header>
 
-        <ShirtPicker />
+        {salesPaused && (
+          <div className="max-w-3xl mx-auto mb-6 v-card text-center">
+            <p className="font-display tracking-widest uppercase">
+              ⚠ Reservas indisponíveis no momento
+            </p>
+            <p className="font-body text-sm mt-1">
+              Fique de olho nos avisos da secretaria para novidades.
+            </p>
+          </div>
+        )}
+
+        <ShirtPicker salesPaused={salesPaused} />
       </section>
 
       {/* Tabela de medidas */}
@@ -96,7 +118,7 @@ export default function Home() {
       </footer>
       </div>
 
-      <CartDrawer />
+      <CartDrawer salesPaused={salesPaused} />
     </main>
   );
 }

@@ -5,17 +5,17 @@ import Image from 'next/image';
 import { COLORS, TYPES, sizesForType, type ColorId, type Size, type TypeId } from '@/lib/products';
 import { useCart } from '@/store/cart';
 
-export function ShirtPicker() {
+export function ShirtPicker({ salesPaused = false }: { salesPaused?: boolean }) {
   return (
     <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
       {COLORS.map((c) => (
-        <ShirtCard key={c.id} colorId={c.id} />
+        <ShirtCard key={c.id} colorId={c.id} salesPaused={salesPaused} />
       ))}
     </div>
   );
 }
 
-function ShirtCard({ colorId }: { colorId: ColorId }) {
+function ShirtCard({ colorId, salesPaused }: { colorId: ColorId; salesPaused: boolean }) {
   const add = useCart((s) => s.add);
   const colorObj = COLORS.find((c) => c.id === colorId)!;
   const [side, setSide] = useState<'frente' | 'costas'>('frente');
@@ -122,10 +122,10 @@ function ShirtCard({ colorId }: { colorId: ColorId }) {
       <button
         type="button"
         onClick={handleAdd}
-        disabled={!size}
+        disabled={!size || salesPaused}
         className="v-btn-glass w-full mt-1"
       >
-        {added ? '✓ Adicionado' : 'Adicionar ao carrinho'}
+        {salesPaused ? 'Reservas indisponíveis' : added ? '✓ Adicionado' : 'Adicionar ao carrinho'}
       </button>
     </div>
   );

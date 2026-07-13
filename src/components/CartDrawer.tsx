@@ -8,7 +8,7 @@ function brl(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export function CartDrawer() {
+export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
   const [open, setOpen] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [infoSeen, setInfoSeen] = useState(false);
@@ -202,13 +202,19 @@ export function CartDrawer() {
                 <span>Reserva 50%</span>
                 <span>{brl(reserve)}</span>
               </div>
-              <Link
-                href="/checkout"
-                onClick={() => setOpen(false)}
-                className={`v-btn w-full mt-3 ${items.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}
-              >
-                Finalizar reserva
-              </Link>
+              {salesPaused ? (
+                <p className="v-btn w-full mt-3 opacity-50 pointer-events-none">
+                  Reservas indisponíveis
+                </p>
+              ) : (
+                <Link
+                  href="/checkout"
+                  onClick={() => setOpen(false)}
+                  className={`v-btn w-full mt-3 ${items.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  Finalizar reserva
+                </Link>
+              )}
             </footer>
           </aside>
         </div>
