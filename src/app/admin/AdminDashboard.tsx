@@ -54,10 +54,12 @@ function waNumber(phone: string): string {
 
 export function AdminDashboard({
   initialReservations,
-  userEmail
+  userEmail,
+  initialSalesPaused
 }: {
   initialReservations: Reservation[];
   userEmail: string;
+  initialSalesPaused: boolean;
 }) {
   const router = useRouter();
   const [list, setList] = useState<Reservation[]>(initialReservations);
@@ -67,6 +69,8 @@ export function AdminDashboard({
   const [editing, setEditing] = useState<Reservation | null>(null);
   const [creating, setCreating] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [salesPaused, setSalesPaused] = useState(initialSalesPaused);
+  const [togglingSales, setTogglingSales] = useState(false);
 
   const filtered = useMemo(() => {
     return list.filter((r) => {
@@ -178,6 +182,25 @@ export function AdminDashboard({
     setList((cur) => cur.filter((r) => r.id !== id));
   }
 
+  async function toggleSales() {
+    const next = !salesPaused;
+    if (next && !confirm('Pausar as vendas? O checkout vai mostrar que as reservas não estão mais disponíveis.')) {
+      return;
+    }
+    setTogglingSales(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('settings')
+      .update({ sales_paused: next })
+      .eq('id', true);
+    setTogglingSales(false);
+    if (error) {
+      alert('Erro: ' + error.message);
+      return;
+    }
+    setSalesPaused(next);
+  }
+
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -206,6 +229,14 @@ export function AdminDashboard({
             <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
               Relatório
             </button>
+            <button
+              type="button"
+              onClick={toggleSales}
+              disabled={togglingSales}
+              className={`v-btn v-btn-sm ${salesPaused ? 'v-btn-dark' : ''}`}
+            >
+              {salesPaused ? 'Retomar vendas' : 'Pausar vendas'}
+            </button>
             <button type="button" onClick={() => setShowChangePwd(true)} className="v-btn v-btn-sm">
               Trocar senha
             </button>
@@ -213,6 +244,14 @@ export function AdminDashboard({
           </div>
         </div>
       </header>
+
+      {salesPaused && (
+        <div className="bg-bone border-b-2 border-ink">
+          <div className="max-w-7xl mx-auto px-4 py-2 font-body text-sm">
+            ⚠ Vendas pausadas — o site está mostrando que as reservas não estão mais disponíveis.
+          </div>
+        </div>
+      )}
 
       <section className="max-w-7xl mx-auto px-4 py-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Reservas" value={String(stats.totalReservas)} />

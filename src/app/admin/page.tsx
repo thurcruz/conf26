@@ -14,5 +14,17 @@ export default async function AdminPage() {
     .select('*')
     .order('created_at', { ascending: false });
 
-  return <AdminDashboard initialReservations={reservations ?? []} userEmail={user.email ?? ''} />;
+  const { data: settings } = await supabase
+    .from('settings')
+    .select('sales_paused')
+    .eq('id', true)
+    .single();
+
+  return (
+    <AdminDashboard
+      initialReservations={reservations ?? []}
+      userEmail={user.email ?? ''}
+      initialSalesPaused={settings?.sales_paused ?? false}
+    />
+  );
 }

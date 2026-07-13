@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/store/cart';
@@ -27,6 +27,17 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: string; whatsappLink: string } | null>(null);
+  const [salesPaused, setSalesPaused] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('settings')
+      .select('sales_paused')
+      .eq('id', true)
+      .single()
+      .then(({ data }) => setSalesPaused(data?.sales_paused ?? false));
+  }, []);
 
   const payNow = payMode === 'full' ? total : reserve;
 
@@ -114,6 +125,27 @@ export default function CheckoutPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (salesPaused === null) {
+    return <main className="min-h-screen bg-paper" />;
+  }
+
+  if (salesPaused) {
+    return (
+      <main className="min-h-screen bg-paper text-ink flex items-center justify-center p-6">
+        <div className="v-card max-w-lg w-full text-center">
+          <h1 className="font-display text-4xl tracking-widest uppercase">Reservas indisponíveis</h1>
+          <p className="font-body mt-3">
+            As reservas de camisas não estão mais disponíveis no momento. Fique de olho nos
+            avisos da secretaria para novidades.
+          </p>
+          <Link href="/" className="v-btn v-btn-dark w-full mt-5">
+            Voltar para o início
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   if (done) {
