@@ -510,6 +510,10 @@ function ReportOverlay({
     }
   }
 
+  function exportExcel() {
+    downloadCsv(buildCsv(rows));
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-ink/80 flex flex-col p-3"
@@ -523,7 +527,10 @@ function ReportOverlay({
         </h2>
         <div className="flex gap-2">
           <button type="button" onClick={print} className="v-btn v-btn-sm">
-            Imprimir / Salvar PDF
+            Exportar PDF
+          </button>
+          <button type="button" onClick={exportExcel} className="v-btn v-btn-sm">
+            Exportar Excel
           </button>
           <button type="button" onClick={onClose} className="v-btn v-btn-sm">
             Fechar
@@ -593,12 +600,11 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
 
   const trs = rows
     .map((r) => {
-      const itemsHtml = r.items
-        .map(
-          (i) =>
-            `${i.qty}× ${escapeHtml(i.colorLabel)} <b>${escapeHtml(i.size)}</b> (${escapeHtml(i.typeLabel)})`
-        )
+      const qtdModelo = r.items
+        .map((i) => `${i.qty}× ${escapeHtml(i.typeLabel)}`)
         .join('<br>');
+      const cor = r.items.map((i) => escapeHtml(i.colorLabel)).join('<br>');
+      const tamanho = r.items.map((i) => escapeHtml(i.size)).join('<br>');
       const restante = r.paid_in_full
         ? '—'
         : `R$ ${(Number(r.total_amount) - Number(r.reserve_amount)).toFixed(2).replace('.', ',')}`;
@@ -612,7 +618,9 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
           <td class="chk"></td>
           <td>${escapeHtml(r.full_name)}</td>
           <td class="phone">${escapeHtml(r.phone)}</td>
-          <td>${itemsHtml}</td>
+          <td>${qtdModelo}</td>
+          <td>${cor}</td>
+          <td>${tamanho}</td>
           <td class="num">R$ ${Number(r.total_amount).toFixed(2).replace('.', ',')}</td>
           <td class="num">R$ ${Number(r.reserve_amount).toFixed(2).replace('.', ',')}</td>
           <td class="num">${restante}</td>
@@ -661,6 +669,10 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
     background: #0a0a0a; color: #f5f1e8;
     padding: 6px 14px; border: none; cursor: pointer;
   }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
   @media print {
     body { margin: 12mm; }
     .btns { display: none; }
@@ -684,7 +696,9 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
         <th class="chk">✓</th>
         <th>Nome</th>
         <th>Telefone</th>
-        <th>Itens</th>
+        <th>Qtd / Modelo</th>
+        <th>Cor</th>
+        <th>Tamanho</th>
         <th class="num">Total</th>
         <th class="num">Pago</th>
         <th class="num">Restante</th>
@@ -694,12 +708,76 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
       </tr>
     </thead>
     <tbody>
-      ${trs || '<tr><td colspan="10" style="text-align:center;padding:16px">Sem reservas neste filtro.</td></tr>'}
+      ${trs || '<tr><td colspan="12" style="text-align:center;padding:16px">Sem reservas neste filtro.</td></tr>'}
     </tbody>
   </table>
   <p class="footer">Marque o ✓ ao entregar a camisa. Peça a assinatura do responsável ao lado.</p>
 </body>
 </html>`;
+}
+
+function csvEscape(value: string | number): string {
+  const s = String(value);
+  return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function buildCsv(rows: Reservation[]): string {
+  const header = [
+    'Nome', 'Telefone', 'Email', 'Qtd', 'Cor', 'Tamanho', 'Modelo',
+    'Preço unitário', 'Subtotal', 'Total da reserva', 'Valor pago',
+    'Restante', 'Forma de pagamento', 'Status', 'Data'
+  ];
+  const lines = [header.map(csvEscape).join(';')];
+
+  for (const r of rows) {
+    const restante = r.paid_in_full
+      ? 0
+      : Number(r.total_amount) - Number(r.reserve_amount);
+    const pm = r.payment_method
+      ? PAYMENT_METHODS.find((m) => m.id === r.payment_method)?.label ?? ''
+      : '';
+    const status = r.paid_in_full ? 'pago 100%' : r.status;
+    const data = new Date(r.created_at).toLocaleString('pt-BR');
+
+    for (const i of r.items) {
+      lines.push(
+        [
+          r.full_name,
+          r.phone,
+          r.email ?? '',
+          i.qty,
+          i.colorLabel,
+          i.size,
+          i.typeLabel,
+          i.unit_price.toFixed(2).replace('.', ','),
+          (i.unit_price * i.qty).toFixed(2).replace('.', ','),
+          Number(r.total_amount).toFixed(2).replace('.', ','),
+          Number(r.reserve_amount).toFixed(2).replace('.', ','),
+          restante.toFixed(2).replace('.', ','),
+          pm,
+          status,
+          data
+        ]
+          .map(csvEscape)
+          .join(';')
+      );
+    }
+  }
+
+  return lines.join('\r\n');
+}
+
+function downloadCsv(csv: string) {
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `reservas_${stamp}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function ChangePasswordModal({ onClose }: { onClose: () => void }) {
