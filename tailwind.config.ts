@@ -5,9 +5,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // '"ADP Numerais"' primeiro: cobre so os digitos (ver @font-face em globals.css).
-        display: ['"ADP Numerais"', '"Space Grotesk"', 'system-ui', 'sans-serif'],
-        body: ['"ADP Numerais"', '"Space Grotesk"', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+        body: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
         serif: ['"Instrument Serif"', 'Georgia', 'serif']
       },
       colors: {
@@ -22,6 +21,7 @@ const config: Config = {
         // Verde só para status "confirmado" — fora da paleta da marca de propósito,
         // porque confirmação precisa ler diferente de alerta.
         success: '#0f8a53',
+        'success-dark': '#0b6b40',
         'success-soft': '#eefaf3',
 
         // ink = azul-marinho da marca (em vez de preto puro)

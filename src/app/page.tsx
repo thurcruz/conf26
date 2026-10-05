@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { AcompanharPedidoLink } from '@/components/AcompanharPedidoLink';
 import { Countdown } from '@/components/Countdown';
 import { ProofBanner } from '@/components/ProofBanner';
 import { ShirtPicker } from '@/components/ShirtPicker';
@@ -42,6 +43,11 @@ export default async function Home() {
             className="absolute inset-0 bg-gradient-to-r from-navy via-navy/35 to-transparent"
             aria-hidden="true"
           />
+        </div>
+
+        {/* Atalho do pedido: canto superior direito, por cima da foto */}
+        <div className="absolute top-0 right-0 z-30 p-5 sm:p-6 lg:p-8">
+          <AcompanharPedidoLink />
         </div>
 
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 lg:grid lg:grid-cols-2">

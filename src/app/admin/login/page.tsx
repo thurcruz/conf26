@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +12,23 @@ export default function AdminLogin() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  /*
+   * A sessao fica guardada em cookie (400 dias), entao quem ja entrou uma vez
+   * nao precisa digitar a senha de novo: se o cookie ainda vale, vai direto
+   * pro painel. O "checking" evita o formulario piscar na tela nesse meio.
+   */
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        router.replace('/admin');
+        return;
+      }
+      setChecking(false);
+    });
+  }, [router]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +43,14 @@ export default function AdminLogin() {
     }
     router.push('/admin');
     router.refresh();
+  }
+
+  if (checking) {
+    return (
+      <main className="min-h-screen bg-paper text-ink flex items-center justify-center p-6">
+        <p className="font-body text-sm">Verificando acesso...</p>
+      </main>
+    );
   }
 
   return (

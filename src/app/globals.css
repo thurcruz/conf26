@@ -1,28 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
 
-/*
- * Space Mono aplicada SOMENTE aos algarismos 0-9 (unicode-range).
- * O navegador pega esta familia para os digitos e cai na Space Grotesk
- * para todo o resto, entao os numeros mudam sem tocar em nenhum outro texto.
- * Por isso ela vem sempre na frente das pilhas de fonte abaixo.
- */
-@font-face {
-  font-family: 'ADP Numerais';
-  src: url('/fonts/space-mono-400.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+0030-0039;
-}
-@font-face {
-  font-family: 'ADP Numerais';
-  src: url('/fonts/space-mono-700.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+0030-0039;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,14 +8,14 @@
   html, body {
     background: #ffffff;
     color: #090424;
-    font-family: 'ADP Numerais', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   ::selection { background: #ff0040; color: #ffffff; }
 
   h1, h2, h3, .display {
-    font-family: 'ADP Numerais', 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
     font-weight: 700;
     letter-spacing: -0.03em;
   }
@@ -68,6 +45,28 @@
     @apply bg-transparent text-white border-white/40 shadow-none
            hover:bg-white hover:text-navy hover:border-white hover:shadow-none;
   }
+  /*
+   * Cores de acao do painel admin: a cor diz o que o botao faz, nao so que ele
+   * existe. Verde = confirma / marca como pago. Vermelho (rosa da marca) =
+   * desfaz, cancela ou apaga. A versao "-soft" e para a acao reversivel, a
+   * solida para a que nao da pra voltar atras (excluir, pausar as vendas).
+   */
+  .v-btn-success {
+    @apply bg-success text-white border-success shadow-none
+           hover:bg-success-dark hover:border-success-dark hover:shadow-none;
+  }
+  .v-btn-success-soft {
+    @apply bg-success-soft text-success border-success
+           hover:bg-success hover:text-white hover:border-success;
+  }
+  .v-btn-danger {
+    @apply bg-pink text-white border-pink shadow-none
+           hover:bg-pink-dark hover:border-pink-dark hover:shadow-none;
+  }
+  .v-btn-danger-soft {
+    @apply bg-pink-soft text-pink-dark border-pink
+           hover:bg-pink hover:text-white hover:border-pink;
+  }
   .v-btn-sm { @apply px-4 py-2 text-sm; }
   .v-btn-ghost {
     @apply bg-transparent border-transparent shadow-none hover:bg-bone hover:border-transparent hover:shadow-none;
@@ -94,6 +93,13 @@
   }
   .v-chip-active {
     @apply bg-navy text-white border-navy hover:bg-navy-soft hover:border-navy-soft;
+  }
+  /* Status das reservas no admin — verde confirmado, vermelho cancelado. */
+  .v-chip-success {
+    @apply bg-success text-white border-success hover:border-success;
+  }
+  .v-chip-danger {
+    @apply bg-pink-soft text-pink-dark border-pink hover:border-pink;
   }
 
   /* --- Faixa rosa em marquee (aviso do comprovante) --- */

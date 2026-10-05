@@ -52,6 +52,33 @@ export function ReservaCard({
         <p className="font-body text-sm text-ash mt-0.5">{sv.hint}</p>
       </div>
 
+      {/* Confirmado nao quer dizer "pode buscar agora" — a retirada tem data
+          propria e quem avisa e a secretaria. Sem isso a pessoa aparece na
+          igreja no domingo seguinte procurando a camisa. */}
+      {reserva.status === 'confirmado' && (
+        <div className="mt-5 border-l-2 border-smoke pl-4 py-1">
+          <p className="font-display font-semibold text-[11px] tracking-[0.18em] uppercase text-ash">
+            Quando retirar
+          </p>
+          <p className="font-body text-sm text-ash mt-2">
+            Você <strong className="text-ink">não precisa fazer mais nada agora</strong>. A
+            retirada das camisas acontece perto da conferência, na semana do evento (
+            {EVENT.dateLabel}).
+          </p>
+          <p className="font-body text-sm text-ash mt-1.5">
+            A secretaria <strong className="text-ink">vai avisar no WhatsApp</strong> quando a sua
+            estiver disponível, com dia, horário e local. Antes desse aviso a camisa ainda não
+            está pronta para retirar — fique de olho no número que você cadastrou.
+          </p>
+          {faltaPagar > 0 && (
+            <p className="font-body text-sm text-ash mt-1.5">
+              Guarde os <strong className="text-ink">{brl(faltaPagar)}</strong> que faltam: esse
+              valor é pago na hora da retirada.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Itens */}
       <ul className="mt-5 divide-y divide-smoke">
         {reserva.items?.map((i, idx) => (

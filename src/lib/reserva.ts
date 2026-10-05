@@ -40,7 +40,9 @@ export function statusView(r: Pick<ReservaConsulta, 'status' | 'tem_comprovante'
   if (r.status === 'confirmado') {
     return {
       label: 'Reserva confirmada',
-      hint: 'Tudo certo! É só retirar a camisa com a secretaria.',
+      // Confirmado nao e "pode buscar": a retirada tem data propria, avisada
+      // pela secretaria. O card explica isso logo abaixo, em "Quando retirar".
+      hint: 'Pagamento conferido e sua camisa está garantida. Agora é só aguardar o aviso da retirada.',
       tone: 'ok'
     };
   }
@@ -72,30 +74,82 @@ export function protocoloDe(id: string) {
 }
 
 // ------------------------------------------------------------
-// Lembrete local do ultimo pedido, para pre-preencher a consulta.
+// Sessao local dos pedidos feitos/consultados neste navegador.
+// Guarda WhatsApp + protocolo de cada um para /meus-pedidos abrir sozinho,
+// sem a pessoa digitar os dados de novo toda vez.
 // E so conveniencia: nada aqui autentica ninguem, a checagem real
 // (telefone + protocolo) acontece no Postgres.
 // ------------------------------------------------------------
-const KEY = 'adp:ultima-reserva';
+const KEY = 'adp:sessao-pedidos';
+/** Chave antiga, de quando so cabia um pedido — migrada na primeira leitura. */
+const KEY_ANTIGA = 'adp:ultima-reserva';
+/** Teto generoso: familia inteira reservando do mesmo celular. */
+const MAX = 12;
 
 export type ReservaLembrada = { protocolo: string; phone: string };
 
-export function lembrarReserva(r: ReservaLembrada) {
+function sanear(v: any): ReservaLembrada | null {
+  if (typeof v?.protocolo !== 'string' || typeof v?.phone !== 'string') return null;
+  const protocolo = v.protocolo.trim().replace(/^#/, '').toUpperCase();
+  if (protocolo.length < 8) return null;
+  return { protocolo, phone: v.phone };
+}
+
+/** Pedidos salvos neste aparelho, do mais recente para o mais antigo. */
+export function lerReservasLembradas(): ReservaLembrada[] {
+  if (typeof window === 'undefined') return [];
+
+  const lista: ReservaLembrada[] = [];
+  const juntar = (v: any) => {
+    const r = sanear(v);
+    if (r && !lista.some((x) => x.protocolo === r.protocolo)) lista.push(r);
+  };
+
   try {
-    localStorage.setItem(KEY, JSON.stringify(r));
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) arr.forEach(juntar);
+    }
+  } catch {
+    /* json corrompido / storage bloqueado — segue sem lembrar */
+  }
+  try {
+    const antigo = localStorage.getItem(KEY_ANTIGA);
+    if (antigo) juntar(JSON.parse(antigo));
+  } catch {
+    /* idem */
+  }
+
+  return lista.slice(0, MAX);
+}
+
+function gravar(lista: ReservaLembrada[]) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(lista.slice(0, MAX)));
+    localStorage.removeItem(KEY_ANTIGA);
   } catch {
     /* modo privado / storage bloqueado — segue sem lembrar */
   }
 }
 
-export function lerReservaLembrada(): ReservaLembrada | null {
+/** Salva (ou atualiza) um pedido no topo da lista. */
+export function lembrarReserva(r: ReservaLembrada) {
+  const novo = sanear(r);
+  if (!novo) return;
+  gravar([novo, ...lerReservasLembradas().filter((x) => x.protocolo !== novo.protocolo)]);
+}
+
+export function esquecerReserva(protocolo: string) {
+  const alvo = protocolo.trim().replace(/^#/, '').toUpperCase();
+  gravar(lerReservasLembradas().filter((x) => x.protocolo !== alvo));
+}
+
+export function esquecerTodasReservas() {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const v = JSON.parse(raw);
-    if (typeof v?.protocolo === 'string' && typeof v?.phone === 'string') return v;
-    return null;
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(KEY_ANTIGA);
   } catch {
-    return null;
+    /* nada a fazer */
   }
 }

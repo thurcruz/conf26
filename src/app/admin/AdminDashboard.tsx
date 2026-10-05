@@ -249,26 +249,21 @@ export function AdminDashboard({
             <p className="font-body text-xs opacity-80">{userEmail}</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Link href="/" className="v-btn v-btn-sm">Site</Link>
-            <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
-              Relatório
-            </button>
-            {/* Arquivo da conferencia anterior — fica so aqui, fora do site publico */}
-            <Link href="/ate-o-fim" className="v-btn v-btn-sm">
-              Arquivo {PAST_EVENT.name}
-            </Link>
+            {/* Verde quando a acao e reabrir as vendas, vermelho quando e fechar. */}
             <button
               type="button"
               onClick={toggleSales}
               disabled={togglingSales}
-              className={`v-btn v-btn-sm ${salesPaused ? 'v-btn-dark' : ''}`}
+              className={`v-btn v-btn-sm ${salesPaused ? 'v-btn-success' : 'v-btn-danger'}`}
             >
               {salesPaused ? 'Retomar vendas' : 'Pausar vendas'}
             </button>
-            <button type="button" onClick={() => setShowChangePwd(true)} className="v-btn v-btn-sm">
-              Trocar senha
+            <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
+              Relatório
             </button>
-            <button type="button" onClick={logout} className="v-btn v-btn-sm">Sair</button>
+            <button type="button" onClick={logout} className="v-btn v-btn-sm v-btn-danger-soft">
+              Sair
+            </button>
           </div>
         </div>
       </header>
@@ -311,7 +306,7 @@ export function AdminDashboard({
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="v-btn"
+          className="v-btn v-btn-dark"
         >
           + Novo pedido
         </button>
@@ -340,16 +335,16 @@ export function AdminDashboard({
                 <span
                   className={`v-chip ${
                     r.status === 'confirmado'
-                      ? 'v-chip-active'
+                      ? 'v-chip-success'
                       : r.status === 'cancelado'
-                      ? 'bg-bone'
+                      ? 'v-chip-danger'
                       : ''
                   }`}
                 >
                   {r.status}
                 </span>
                 {r.paid_in_full && (
-                  <span className="v-chip v-chip-active">pago 100%</span>
+                  <span className="v-chip v-chip-success">pago 100%</span>
                 )}
                 {r.payment_method && (
                   <span className="v-chip">
@@ -432,7 +427,7 @@ export function AdminDashboard({
                 <button
                   type="button"
                   onClick={() => changeStatus(r.id, 'confirmado')}
-                  className="v-btn v-btn-sm"
+                  className="v-btn v-btn-sm v-btn-success"
                 >
                   Confirmar reserva
                 </button>
@@ -441,7 +436,7 @@ export function AdminDashboard({
                 <button
                   type="button"
                   onClick={() => togglePaid(r.id, true)}
-                  className="v-btn v-btn-sm"
+                  className="v-btn v-btn-sm v-btn-success-soft"
                 >
                   Total pago
                 </button>
@@ -449,7 +444,7 @@ export function AdminDashboard({
                 <button
                   type="button"
                   onClick={() => togglePaid(r.id, false)}
-                  className="v-btn v-btn-sm"
+                  className="v-btn v-btn-sm v-btn-danger-soft"
                 >
                   Desfazer total pago
                 </button>
@@ -467,12 +462,12 @@ export function AdminDashboard({
                 <button
                   type="button"
                   onClick={() => changeStatus(r.id, 'cancelado')}
-                  className="v-btn v-btn-sm"
+                  className="v-btn v-btn-sm v-btn-danger-soft"
                 >
                   Cancelar
                 </button>
               )}
-              <button type="button" onClick={() => remove(r.id)} className="v-btn v-btn-sm">
+              <button type="button" onClick={() => remove(r.id)} className="v-btn v-btn-sm v-btn-danger">
                 Excluir
               </button>
             </div>
@@ -517,6 +512,34 @@ export function AdminDashboard({
           onClose={() => setShowReport(false)}
         />
       )}
+
+      {/*
+       * Rodape do painel: o que nao e do dia a dia sai da barra de cima e vem
+       * pra ca — conta/senha e o arquivo da conferencia anterior.
+       */}
+      <footer className="border-t border-smoke bg-bone mt-10">
+        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="font-body text-sm">
+            <p className="font-display font-semibold tracking-widest uppercase text-xs">
+              Conta
+            </p>
+            <p className="mt-0.5">{userEmail}</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowChangePwd(true)}
+              className="v-btn v-btn-sm"
+            >
+              Trocar senha
+            </button>
+            {/* Arquivo da conferencia anterior — fica so aqui, fora do site publico */}
+            <Link href="/ate-o-fim" className="v-btn v-btn-sm">
+              Arquivo {PAST_EVENT.name}
+            </Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
@@ -780,22 +803,25 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" />
 <title>Relatório de reservas — ${EVENT.name}</title>
 <style>
   * { box-sizing: border-box; }
   body {
-    font-family: Inter, system-ui, Arial, sans-serif;
+    font-family: 'Space Grotesk', system-ui, Arial, sans-serif;
     color: #0a0a0a;
     margin: 24px;
   }
-  h1 { font-family: Impact, sans-serif; letter-spacing: 2px; margin: 0 0 4px; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; }
   .meta { font-size: 12px; margin-bottom: 12px; display: flex; gap: 20px; flex-wrap: wrap; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th, td { border: 1px solid #0a0a0a; padding: 6px 8px; vertical-align: top; }
   thead th {
     background: #0a0a0a; color: #f5f1e8;
-    font-family: Impact, sans-serif; letter-spacing: 1px;
-    font-weight: normal; text-align: left;
+    font-family: 'Space Grotesk', sans-serif; letter-spacing: 1px;
+    font-weight: 600; text-align: left;
   }
   tbody tr:nth-child(even) { background: #f5f1e8; }
   .chk { width: 26px; text-align: center; }
@@ -809,7 +835,7 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
   .footer { margin-top: 12px; font-size: 11px; opacity: 0.8; }
   .btns { margin-bottom: 12px; }
   .btns button {
-    font-family: Impact, sans-serif; letter-spacing: 1px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: 1px;
     background: #0a0a0a; color: #f5f1e8;
     padding: 6px 14px; border: none; cursor: pointer;
   }

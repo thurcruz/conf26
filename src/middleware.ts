@@ -39,7 +39,12 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/login';
-      return NextResponse.redirect(url);
+      const redirect = NextResponse.redirect(url);
+      // Leva junto os cookies que o setAll acima gravou. Sem isso, um refresh
+      // de token que acontece no mesmo request e jogado fora no redirect e a
+      // sessao morre antes da hora.
+      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+      return redirect;
     }
   }
 
