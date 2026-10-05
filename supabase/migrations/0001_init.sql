@@ -26,8 +26,13 @@ create index if not exists reservations_created_at_idx on public.reservations (c
 create index if not exists reservations_status_idx on public.reservations (status);
 
 -- updated_at trigger
+-- `set search_path` fixo: sem isso o advisor de seguranca do Supabase acusa
+-- "function_search_path_mutable".
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger
+language plpgsql
+set search_path = public
+as $$
 begin
   new.updated_at = now();
   return new;

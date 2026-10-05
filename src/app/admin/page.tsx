@@ -16,7 +16,7 @@ export default async function AdminPage() {
 
   const { data: settings } = await supabase
     .from('settings')
-    .select('sales_paused')
+    .select('sales_paused, current_edition')
     .eq('id', true)
     .single();
 
@@ -25,6 +25,7 @@ export default async function AdminPage() {
       initialReservations={reservations ?? []}
       userEmail={user.email ?? ''}
       initialSalesPaused={settings?.sales_paused ?? false}
+      currentEdition={settings?.current_edition ?? 'alem-do-palco'}
     />
   );
 }

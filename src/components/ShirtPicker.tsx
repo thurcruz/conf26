@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { COLORS, TYPES, sizesForType, type ColorId, type Size, type TypeId } from '@/lib/products';
+import { ShirtViewer } from '@/components/ShirtViewer';
 import { useCart } from '@/store/cart';
 
 export function ShirtPicker({ salesPaused = false }: { salesPaused?: boolean }) {
@@ -18,14 +18,12 @@ export function ShirtPicker({ salesPaused = false }: { salesPaused?: boolean }) 
 function ShirtCard({ colorId, salesPaused }: { colorId: ColorId; salesPaused: boolean }) {
   const add = useCart((s) => s.add);
   const colorObj = COLORS.find((c) => c.id === colorId)!;
-  const [side, setSide] = useState<'frente' | 'costas'>('frente');
   const [size, setSize] = useState<Size | null>(null);
   const [type, setType] = useState<TypeId>('casual');
   const [added, setAdded] = useState(false);
 
   const typeObj = TYPES.find((t) => t.id === type)!;
   const availableSizes = sizesForType(type);
-  const img = side === 'frente' ? colorObj.frontImg : colorObj.backImg;
 
   function handleTypeChange(newType: TypeId) {
     setType(newType);
@@ -48,52 +46,39 @@ function ShirtCard({ colorId, salesPaused }: { colorId: ColorId; salesPaused: bo
   }
 
   return (
-    <div className="glass-card flex flex-col gap-4">
-      <header className="flex items-baseline justify-between gap-3">
-        <h3 className="font-display text-2xl sm:text-3xl tracking-wider uppercase">
-          {colorObj.label}
-        </h3>
-        <span className="font-body text-sm">
+    <div className="v-card flex flex-col gap-4">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Circulo com a cor real do tecido */}
+          <span
+            className="w-5 h-5 rounded-full border border-smoke shrink-0 shadow-soft-sm"
+            style={{ backgroundColor: colorObj.swatch }}
+            aria-hidden="true"
+          />
+          <h3 className="font-display font-bold text-2xl sm:text-3xl tracking-tight truncate">
+            {colorObj.label}
+          </h3>
+        </div>
+        <span className="font-display font-semibold text-sm text-pink shrink-0">
           R$ {typeObj.price.toFixed(2).replace('.', ',')}
         </span>
       </header>
 
-      <div className="relative aspect-square border-2 border-paper overflow-hidden bg-white/5">
-        <Image
-          src={img}
-          alt={`Camisa ${colorObj.label} (${side})`}
-          fill
-          sizes="(min-width: 768px) 420px, 90vw"
-          className="object-contain"
-          priority
-        />
-        <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => setSide('frente')}
-            className={`v-chip-glass ${side === 'frente' ? 'v-chip-glass-active' : ''}`}
-          >
-            Frente
-          </button>
-          <button
-            type="button"
-            onClick={() => setSide('costas')}
-            className={`v-chip-glass ${side === 'costas' ? 'v-chip-glass-active' : ''}`}
-          >
-            Costas
-          </button>
-        </div>
-      </div>
+      <ShirtViewer
+        label={colorObj.label}
+        frontImg={colorObj.frontImg}
+        backImg={colorObj.backImg}
+      />
 
       <div>
-        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">Modelo</p>
+        <p className="font-display font-semibold text-[11px] tracking-[0.18em] uppercase mb-2 text-ash">Modelo</p>
         <div className="flex flex-wrap gap-2">
           {TYPES.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => handleTypeChange(t.id)}
-              className={`v-chip-glass ${type === t.id ? 'v-chip-glass-active' : ''}`}
+              className={`v-chip ${type === t.id ? 'v-chip-active' : ''}`}
             >
               {t.label} · R$ {t.price.toFixed(2).replace('.', ',')}
             </button>
@@ -102,7 +87,7 @@ function ShirtCard({ colorId, salesPaused }: { colorId: ColorId; salesPaused: bo
       </div>
 
       <div>
-        <p className="font-display text-xs tracking-widest uppercase mb-1 opacity-80">
+        <p className="font-display font-semibold text-[11px] tracking-[0.18em] uppercase mb-2 text-ash">
           Tamanho {type === 'infantil' && <span className="opacity-70">(anos)</span>}
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -111,7 +96,7 @@ function ShirtCard({ colorId, salesPaused }: { colorId: ColorId; salesPaused: bo
               key={s}
               type="button"
               onClick={() => setSize(s as Size)}
-              className={`v-chip-glass min-w-[2.75rem] ${size === s ? 'v-chip-glass-active' : ''}`}
+              className={`v-chip min-w-[2.75rem] ${size === s ? 'v-chip-active' : ''}`}
             >
               {s}
             </button>
@@ -123,7 +108,7 @@ function ShirtCard({ colorId, salesPaused }: { colorId: ColorId; salesPaused: bo
         type="button"
         onClick={handleAdd}
         disabled={!size || salesPaused}
-        className="v-btn-glass w-full mt-1"
+        className="v-btn v-btn-pink w-full mt-2"
       >
         {salesPaused ? 'Reservas indisponíveis' : added ? '✓ Adicionado' : 'Adicionar ao carrinho'}
       </button>

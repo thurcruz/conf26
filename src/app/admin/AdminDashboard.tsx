@@ -4,7 +4,9 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { COLORS, TYPES, sizesForType, type ColorId, type Size, type TypeId } from '@/lib/products';
+import { COLORS, EVENT, PAST_EVENT, TYPES, sizesForType, type ColorId, type Size, type TypeId } from '@/lib/products';
+import { protocoloDe } from '@/lib/reserva';
+import { ProtocoloChip } from '@/components/Protocolo';
 
 type Item = {
   color: string;
@@ -16,7 +18,7 @@ type Item = {
   unit_price: number;
 };
 
-type Reservation = {
+export type Reservation = {
   id: string;
   full_name: string;
   phone: string;
@@ -31,6 +33,7 @@ type Reservation = {
   payment_method: 'pix' | 'cartao' | 'dinheiro' | null;
   notes: string | null;
   created_at: string;
+  edition: string;
 };
 
 const PAYMENT_METHODS = [
@@ -55,14 +58,27 @@ function waNumber(phone: string): string {
 export function AdminDashboard({
   initialReservations,
   userEmail,
-  initialSalesPaused
+  initialSalesPaused,
+  currentEdition
 }: {
   initialReservations: Reservation[];
   userEmail: string;
   initialSalesPaused: boolean;
+  currentEdition: string;
 }) {
   const router = useRouter();
   const [list, setList] = useState<Reservation[]>(initialReservations);
+
+  // Conferencia atual x edicoes anteriores. O historico e so leitura — isso e
+  // garantido pela RLS (migration 0006), aqui so tiramos da frente.
+  const atuais = useMemo(
+    () => list.filter((r) => r.edition === currentEdition),
+    [list, currentEdition]
+  );
+  const historico = useMemo(
+    () => list.filter((r) => r.edition !== currentEdition),
+    [list, currentEdition]
+  );
   const [filter, setFilter] = useState<'todas' | 'pendente' | 'confirmado' | 'cancelado'>('todas');
   const [search, setSearch] = useState('');
   const [showChangePwd, setShowChangePwd] = useState(false);
@@ -73,32 +89,40 @@ export function AdminDashboard({
   const [togglingSales, setTogglingSales] = useState(false);
 
   const filtered = useMemo(() => {
-    return list.filter((r) => {
+    return atuais.filter((r) => {
       if (filter !== 'todas' && r.status !== filter) return false;
       if (search) {
-        const q = search.toLowerCase();
-        if (!r.full_name.toLowerCase().includes(q) && !r.phone.includes(q)) return false;
+        const q = search.toLowerCase().replace(/^#/, '');
+        const protocolo = protocoloDe(r.id).toLowerCase();
+        const telefone = r.phone.replace(/\D/g, '');
+        const qDigitos = q.replace(/\D/g, '');
+        const achou =
+          r.full_name.toLowerCase().includes(q) ||
+          protocolo.includes(q) ||
+          r.phone.includes(q) ||
+          (qDigitos.length >= 4 && telefone.includes(qDigitos));
+        if (!achou) return false;
       }
       return true;
     });
-  }, [list, filter, search]);
+  }, [atuais, filter, search]);
 
   const stats = useMemo(() => {
-    const totalItems = list.reduce(
+    const totalItems = atuais.reduce(
       (acc, r) => acc + r.items.reduce((a, i) => a + i.qty, 0),
       0
     );
-    const totalReservas = list.length;
-    const totalArrecadado = list
+    const totalReservas = atuais.length;
+    const totalArrecadado = atuais
       .filter((r) => r.status === 'confirmado' || r.paid_in_full)
       .reduce(
         (a, r) =>
           a + Number(r.paid_in_full ? r.total_amount : r.reserve_amount),
         0
       );
-    const pendente = list.filter((r) => r.status === 'pendente').length;
+    const pendente = atuais.filter((r) => r.status === 'pendente').length;
     return { totalItems, totalReservas, totalArrecadado, pendente };
-  }, [list]);
+  }, [atuais]);
 
   async function changeStatus(id: string, status: Reservation['status']) {
     const supabase = createClient();
@@ -218,10 +242,10 @@ export function AdminDashboard({
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="bg-ink text-paper border-b-2 border-ink">
+      <header className="bg-ink text-paper border-b border-smoke">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="font-display text-2xl tracking-widest uppercase">Painel Admin</h1>
+            <h1 className="font-display font-bold text-2xl tracking-tight uppercase">Painel Admin</h1>
             <p className="font-body text-xs opacity-80">{userEmail}</p>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -229,6 +253,10 @@ export function AdminDashboard({
             <button type="button" onClick={exportPrint} className="v-btn v-btn-sm">
               Relatório
             </button>
+            {/* Arquivo da conferencia anterior — fica so aqui, fora do site publico */}
+            <Link href="/ate-o-fim" className="v-btn v-btn-sm">
+              Arquivo {PAST_EVENT.name}
+            </Link>
             <button
               type="button"
               onClick={toggleSales}
@@ -246,7 +274,7 @@ export function AdminDashboard({
       </header>
 
       {salesPaused && (
-        <div className="bg-bone border-b-2 border-ink">
+        <div className="bg-bone border-b border-smoke">
           <div className="max-w-7xl mx-auto px-4 py-2 font-body text-sm">
             ⚠ Vendas pausadas — o site está mostrando que as reservas não estão mais disponíveis.
           </div>
@@ -272,7 +300,7 @@ export function AdminDashboard({
           </button>
         ))}
         <input
-          placeholder="Buscar por nome ou telefone"
+          placeholder="Buscar por nº do pedido, nome ou telefone"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="v-input flex-1 min-w-[200px]"
@@ -295,12 +323,15 @@ export function AdminDashboard({
         )}
         {filtered.map((r) => (
           <article key={r.id} className="v-card">
-            <header className="flex justify-between flex-wrap gap-2 border-b-2 border-ink pb-2 mb-2">
+            <header className="flex justify-between flex-wrap gap-2 border-b border-smoke pb-2 mb-2">
               <div>
-                <h3 className="font-display text-xl tracking-wide uppercase leading-tight">
-                  {r.full_name}
-                </h3>
-                <p className="font-body text-sm">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="font-display font-bold text-xl tracking-tight uppercase leading-tight">
+                    {r.full_name}
+                  </h3>
+                  <ProtocoloChip protocolo={protocoloDe(r.id)} />
+                </div>
+                <p className="font-body text-sm mt-1">
                   {r.phone} · {r.email ?? '—'} ·{' '}
                   {new Date(r.created_at).toLocaleString('pt-BR')}
                 </p>
@@ -381,7 +412,7 @@ export function AdminDashboard({
               <a
                 href={`https://wa.me/${waNumber(r.phone)}?text=${encodeURIComponent(
                   `Olá, ${r.full_name.split(' ')[0]}! Aqui é da Secretária da IBCCG.\n\n` +
-                    `Estamos organizando as reservas das camisas da Conferência 2026 e ainda não recebemos o comprovante do PIX da sua reserva #${r.id.slice(0, 8).toUpperCase()} (${brl(r.reserve_amount)}).\n\n` +
+                    `Estamos organizando as reservas das camisas da Conferência ${EVENT.name} e ainda não recebemos o comprovante do PIX da sua reserva #${protocoloDe(r.id)} (${brl(r.reserve_amount)}).\n\n` +
                     `Você poderia nos enviar o comprovante por aqui, por favor? Assim garantimos sua camisa. Muito obrigado!`
                 )}`}
                 target="_blank"
@@ -466,6 +497,7 @@ export function AdminDashboard({
 
       {creating && (
         <NewReservationModal
+          currentEdition={currentEdition}
           onClose={() => setCreating(false)}
           onCreated={(r) => {
             setList((cur) => [r, ...cur]);
@@ -473,6 +505,8 @@ export function AdminDashboard({
           }}
         />
       )}
+
+      <HistoricoReservas rows={historico} />
 
       {showReport && (
         <ReportOverlay
@@ -487,14 +521,124 @@ export function AdminDashboard({
   );
 }
 
+/**
+ * Edicoes anteriores da conferencia. Fica recolhido para nao competir com a
+ * conferencia atual; abre sob demanda em modo leitura. Nao ha botao de editar
+ * ou excluir aqui — e a RLS tambem recusa, entao nao e so a interface.
+ */
+export function HistoricoReservas({ rows }: { rows: Reservation[] }) {
+  const [aberto, setAberto] = useState(false);
+  const [relatorio, setRelatorio] = useState(false);
+
+  if (rows.length === 0) return null;
+
+  const porEdicao = rows.reduce<Record<string, number>>((acc, r) => {
+    acc[r.edition] = (acc[r.edition] ?? 0) + 1;
+    return acc;
+  }, {});
+  const camisas = rows.reduce((a, r) => a + r.items.reduce((x, i) => x + i.qty, 0), 0);
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 pb-10">
+      <div className="rounded-3xl border border-smoke bg-bone overflow-hidden">
+        <div className="flex items-center justify-between gap-3 flex-wrap px-5 py-4">
+          <div className="min-w-0">
+            <p className="font-display text-[11px] tracking-[0.2em] uppercase text-ash">
+              Edições anteriores · somente leitura
+            </p>
+            <p className="font-display font-semibold text-lg tracking-tight mt-0.5">
+              {rows.length} reserva{rows.length === 1 ? '' : 's'} · {camisas} camisa
+              {camisas === 1 ? '' : 's'}
+              <span className="font-body font-normal text-sm text-ash">
+                {' '}
+                ({Object.entries(porEdicao)
+                  .map(([e, n]) => `${e}: ${n}`)
+                  .join(' · ')})
+              </span>
+            </p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={() => setRelatorio(true)} className="v-btn v-btn-sm">
+              Baixar relatório
+            </button>
+            <button
+              type="button"
+              onClick={() => setAberto((v) => !v)}
+              className="v-btn v-btn-sm"
+              aria-expanded={aberto}
+            >
+              {aberto ? 'Recolher' : 'Ver histórico'}
+            </button>
+          </div>
+        </div>
+
+        {aberto && (
+          <div className="border-t border-smoke bg-white max-h-[60vh] overflow-y-auto">
+            <table className="w-full text-left font-body text-sm">
+              <thead className="sticky top-0 bg-bone border-b border-smoke">
+                <tr className="font-display text-[11px] tracking-[0.14em] uppercase text-ash">
+                  <th className="px-4 py-2.5 font-semibold">Nº</th>
+                  <th className="px-4 py-2.5 font-semibold">Nome</th>
+                  <th className="px-4 py-2.5 font-semibold">Telefone</th>
+                  <th className="px-4 py-2.5 font-semibold">Itens</th>
+                  <th className="px-4 py-2.5 font-semibold">Total</th>
+                  <th className="px-4 py-2.5 font-semibold">Situação</th>
+                  <th className="px-4 py-2.5 font-semibold">Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b border-smoke last:border-0">
+                    <td className="px-4 py-2.5 font-display font-semibold tabular-nums whitespace-nowrap">
+                      #{protocoloDe(r.id)}
+                    </td>
+                    <td className="px-4 py-2.5">{r.full_name}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-ash">{r.phone}</td>
+                    <td className="px-4 py-2.5 text-ash">
+                      {r.items
+                        .map((i) => `${i.qty}x ${i.colorLabel} ${i.size}`)
+                        .join(', ')}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{brl(r.total_amount)}</td>
+                    <td className="px-4 py-2.5">
+                      <span className="text-ash">{r.status}</span>
+                      {r.paid_in_full && (
+                        <span className="text-success"> · pago 100%</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-ash">
+                      {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {relatorio && (
+        <ReportOverlay
+          rows={[...rows].sort((a, b) => a.full_name.localeCompare(b.full_name, 'pt-BR'))}
+          filter="histórico"
+          titulo="Relatório — edições anteriores"
+          onClose={() => setRelatorio(false)}
+        />
+      )}
+    </section>
+  );
+}
+
 function ReportOverlay({
   rows,
   filter,
-  onClose
+  onClose,
+  titulo = 'Relatório de reservas'
 }: {
   rows: Reservation[];
   filter: string;
   onClose: () => void;
+  titulo?: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const html = buildPrintHtml(rows, filter);
@@ -522,8 +666,8 @@ function ReportOverlay({
       aria-label="Relatório de reservas"
     >
       <div className="flex justify-between items-center gap-2 mb-2 flex-wrap">
-        <h2 className="font-display text-2xl tracking-widest uppercase text-paper drop-shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
-          Relatório de reservas
+        <h2 className="font-display font-bold text-2xl tracking-tight uppercase text-paper">
+          {titulo}
         </h2>
         <div className="flex gap-2">
           <button type="button" onClick={print} className="v-btn v-btn-sm">
@@ -541,7 +685,7 @@ function ReportOverlay({
         ref={iframeRef}
         title="Relatório de reservas"
         srcDoc={html}
-        className="flex-1 w-full bg-white border-2 border-ink"
+        className="flex-1 w-full bg-white border border-smoke"
       />
     </div>
   );
@@ -573,7 +717,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="v-card">
       <p className="font-body text-xs tracking-widest uppercase">{label}</p>
-      <p className="font-display text-3xl tracking-wider mt-1">{value}</p>
+      <p className="font-display font-bold text-3xl tracking-tight mt-1">{value}</p>
     </div>
   );
 }
@@ -636,11 +780,11 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
-<title>Relatório de reservas — Conferência 2026</title>
+<title>Relatório de reservas — ${EVENT.name}</title>
 <style>
   * { box-sizing: border-box; }
   body {
-    font-family: 'Courier New', monospace;
+    font-family: Inter, system-ui, Arial, sans-serif;
     color: #0a0a0a;
     margin: 24px;
   }
@@ -682,7 +826,7 @@ function buildPrintHtml(rows: Reservation[], filter: string): string {
 </style>
 </head>
 <body>
-  <h1>Conferência 2026 — Entrega de Camisas</h1>
+  <h1>${EVENT.name} — Entrega de Camisas</h1>
   <div class="meta">
     <span><b>Gerado em:</b> ${escapeHtml(now)}</span>
     <span><b>Filtro:</b> ${escapeHtml(filter)}</span>
@@ -817,8 +961,8 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
       aria-modal="true"
     >
       <form onSubmit={save} className="v-card w-full max-w-md">
-        <header className="flex justify-between items-center border-b-2 border-ink pb-2 mb-3">
-          <h2 className="font-display text-2xl tracking-widest uppercase">Trocar senha</h2>
+        <header className="flex justify-between items-center border-b border-smoke pb-2 mb-3">
+          <h2 className="font-display font-bold text-2xl tracking-tight uppercase">Trocar senha</h2>
           <button
             type="button"
             onClick={onClose}
@@ -830,7 +974,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
         </header>
 
         <label className="block">
-          <span className="font-display tracking-widest uppercase text-sm">Nova senha</span>
+          <span className="font-display font-semibold tracking-widest uppercase text-sm">Nova senha</span>
           <input
             type="password"
             required
@@ -841,7 +985,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
           />
         </label>
         <label className="block mt-3">
-          <span className="font-display tracking-widest uppercase text-sm">Confirmar nova senha</span>
+          <span className="font-display font-semibold tracking-widest uppercase text-sm">Confirmar nova senha</span>
           <input
             type="password"
             required
@@ -853,7 +997,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
 
         {msg && (
           <div
-            className={`mt-3 border-2 border-ink p-2 font-body text-sm ${
+            className={`mt-3 border border-smoke p-2 font-body text-sm ${
               msg.kind === 'ok' ? 'bg-bone' : 'bg-white'
             }`}
           >
@@ -995,9 +1139,9 @@ function EditReservationModal({
     >
       <div className="min-h-full flex items-start sm:items-center justify-center p-3 sm:p-4">
       <form onSubmit={save} className="v-card w-full max-w-2xl my-4">
-        <header className="sticky -top-5 -mx-5 px-5 pt-5 pb-2 bg-white border-b-2 border-ink mb-3 flex justify-between items-center z-10">
-          <h2 className="font-display text-2xl tracking-widest uppercase">
-            Editar reserva #{reservation.id.slice(0, 8).toUpperCase()}
+        <header className="sticky -top-5 -mx-5 px-5 pt-5 pb-2 bg-white border-b border-smoke mb-3 flex justify-between items-center z-10">
+          <h2 className="font-display font-bold text-2xl tracking-tight uppercase">
+            Editar pedido #{protocoloDe(reservation.id)}
           </h2>
           <button
             type="button"
@@ -1011,7 +1155,7 @@ function EditReservationModal({
 
         <div className="grid sm:grid-cols-2 gap-3">
           <label className="block sm:col-span-2">
-            <span className="font-display tracking-widest uppercase text-sm">Nome completo *</span>
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">Nome completo *</span>
             <input
               className="v-input mt-1"
               placeholder="Ex: João da Silva"
@@ -1020,7 +1164,7 @@ function EditReservationModal({
             />
           </label>
           <label className="block">
-            <span className="font-display tracking-widest uppercase text-sm">Telefone *</span>
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">Telefone *</span>
             <input
               className="v-input mt-1"
               placeholder="Ex: (21) 96482-9407"
@@ -1029,7 +1173,7 @@ function EditReservationModal({
             />
           </label>
           <label className="block">
-            <span className="font-display tracking-widest uppercase text-sm">
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">
               E-mail <span className="opacity-70">(opcional)</span>
             </span>
             <input
@@ -1043,7 +1187,7 @@ function EditReservationModal({
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className="font-display tracking-widest uppercase text-sm">Observações</span>
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">Observações</span>
             <textarea
               className="v-input mt-1"
               rows={2}
@@ -1054,16 +1198,16 @@ function EditReservationModal({
           </label>
         </div>
 
-        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+        <h3 className="font-display font-bold text-xl tracking-tight uppercase border-b border-smoke pb-1 mt-5 mb-2">
           Itens
         </h3>
 
         <div className="space-y-3">
           {items.map((it, idx) => (
-            <div key={idx} className="border-2 border-ink p-3 flex flex-col gap-2">
+            <div key={idx} className="rounded-2xl border border-smoke p-3 flex flex-col gap-2">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <label className="block">
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Cor</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Cor</span>
                   <select
                     value={it.color}
                     onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
@@ -1072,10 +1216,13 @@ function EditReservationModal({
                     {COLORS.map((c) => (
                       <option key={c.id} value={c.id}>{c.label}</option>
                     ))}
+                    {!COLORS.some((c) => c.id === it.color) && (
+                      <option value={it.color}>{it.colorLabel} (antigo)</option>
+                    )}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Modelo</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Modelo</span>
                   <select
                     value={it.type}
                     onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
@@ -1089,7 +1236,7 @@ function EditReservationModal({
                   </select>
                 </label>
                 <label className="block">
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Tamanho</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Tamanho</span>
                   <select
                     value={it.size}
                     onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
@@ -1103,7 +1250,7 @@ function EditReservationModal({
               </div>
               <div className="flex items-end justify-between gap-2 flex-wrap">
                 <div>
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Quantidade</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Quantidade</span>
                   <div className="mt-1 flex items-center gap-1">
                     <button
                       type="button"
@@ -1143,7 +1290,7 @@ function EditReservationModal({
           + Adicionar item
         </button>
 
-        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+        <h3 className="font-display font-bold text-xl tracking-tight uppercase border-b border-smoke pb-1 mt-5 mb-2">
           Forma de pagamento
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -1161,13 +1308,13 @@ function EditReservationModal({
           ))}
         </div>
 
-        <div className="mt-4 pt-3 border-t-2 border-ink flex justify-between font-display text-xl uppercase">
+        <div className="mt-4 pt-3 border-t border-smoke flex justify-between font-display text-xl uppercase">
           <span>Total: {brl(totalAmount)}</span>
           <span>Reserva 50%: {brl(reserveAmount)}</span>
         </div>
 
         {error && (
-          <div className="mt-3 border-2 border-ink bg-white p-2 font-body text-sm">
+          <div className="mt-3 border border-smoke bg-white p-2 font-body text-sm">
             ⚠ {error}
           </div>
         )}
@@ -1188,10 +1335,12 @@ function EditReservationModal({
 
 function NewReservationModal({
   onClose,
-  onCreated
+  onCreated,
+  currentEdition
 }: {
   onClose: () => void;
   onCreated: (r: Reservation) => void;
+  currentEdition: string;
 }) {
   const firstColor = COLORS[0];
   const firstType = TYPES[0];
@@ -1297,7 +1446,10 @@ function NewReservationModal({
       paid_in_full: paidInFull,
       payment_method: paymentMethod,
       notes: notes.trim() || null,
-      created_at: now
+      created_at: now,
+      // o banco preenche `edition` pelo default; aqui so espelhamos para a
+      // reserva aparecer na lista da conferencia atual sem precisar recarregar
+      edition: currentEdition
     };
     const { error: insErr } = await supabase.from('reservations').insert({
       id,
@@ -1330,8 +1482,8 @@ function NewReservationModal({
     >
       <div className="min-h-full flex items-start sm:items-center justify-center p-3 sm:p-4">
       <form onSubmit={save} className="v-card w-full max-w-2xl my-4">
-        <header className="sticky -top-5 -mx-5 px-5 pt-5 pb-2 bg-white border-b-2 border-ink mb-3 flex justify-between items-center z-10">
-          <h2 className="font-display text-2xl tracking-widest uppercase">Novo pedido</h2>
+        <header className="sticky -top-5 -mx-5 px-5 pt-5 pb-2 bg-white border-b border-smoke mb-3 flex justify-between items-center z-10">
+          <h2 className="font-display font-bold text-2xl tracking-tight uppercase">Novo pedido</h2>
           <button
             type="button"
             onClick={onClose}
@@ -1344,7 +1496,7 @@ function NewReservationModal({
 
         <div className="grid sm:grid-cols-2 gap-3">
           <label className="block sm:col-span-2">
-            <span className="font-display tracking-widest uppercase text-sm">Nome completo *</span>
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">Nome completo *</span>
             <input
               className="v-input mt-1"
               placeholder="Ex: João da Silva"
@@ -1354,7 +1506,7 @@ function NewReservationModal({
             />
           </label>
           <label className="block">
-            <span className="font-display tracking-widest uppercase text-sm">Telefone *</span>
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">Telefone *</span>
             <input
               className="v-input mt-1"
               placeholder="Ex: (21) 96482-9407"
@@ -1363,7 +1515,7 @@ function NewReservationModal({
             />
           </label>
           <label className="block">
-            <span className="font-display tracking-widest uppercase text-sm">
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">
               E-mail <span className="opacity-70">(opcional)</span>
             </span>
             <input
@@ -1377,7 +1529,7 @@ function NewReservationModal({
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className="font-display tracking-widest uppercase text-sm">Observações</span>
+            <span className="font-display font-semibold tracking-widest uppercase text-sm">Observações</span>
             <textarea
               className="v-input mt-1"
               rows={2}
@@ -1388,16 +1540,16 @@ function NewReservationModal({
           </label>
         </div>
 
-        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+        <h3 className="font-display font-bold text-xl tracking-tight uppercase border-b border-smoke pb-1 mt-5 mb-2">
           Itens
         </h3>
 
         <div className="space-y-3">
           {items.map((it, idx) => (
-            <div key={idx} className="border-2 border-ink p-3 flex flex-col gap-2">
+            <div key={idx} className="rounded-2xl border border-smoke p-3 flex flex-col gap-2">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <label className="block">
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Cor</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Cor</span>
                   <select
                     value={it.color}
                     onChange={(e) => updateItem(idx, { color: e.target.value as ColorId })}
@@ -1406,10 +1558,13 @@ function NewReservationModal({
                     {COLORS.map((c) => (
                       <option key={c.id} value={c.id}>{c.label}</option>
                     ))}
+                    {!COLORS.some((c) => c.id === it.color) && (
+                      <option value={it.color}>{it.colorLabel} (antigo)</option>
+                    )}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Modelo</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Modelo</span>
                   <select
                     value={it.type}
                     onChange={(e) => updateItem(idx, { type: e.target.value as TypeId })}
@@ -1423,7 +1578,7 @@ function NewReservationModal({
                   </select>
                 </label>
                 <label className="block">
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Tamanho</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Tamanho</span>
                   <select
                     value={it.size}
                     onChange={(e) => updateItem(idx, { size: e.target.value as Size })}
@@ -1437,7 +1592,7 @@ function NewReservationModal({
               </div>
               <div className="flex items-end justify-between gap-2 flex-wrap">
                 <div>
-                  <span className="font-display tracking-widest uppercase text-xs opacity-70">Quantidade</span>
+                  <span className="font-display font-semibold tracking-widest uppercase text-xs opacity-70">Quantidade</span>
                   <div className="mt-1 flex items-center gap-1">
                     <button
                       type="button"
@@ -1477,7 +1632,7 @@ function NewReservationModal({
           + Adicionar item
         </button>
 
-        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+        <h3 className="font-display font-bold text-xl tracking-tight uppercase border-b border-smoke pb-1 mt-5 mb-2">
           Pagamento
         </h3>
         <div className="grid sm:grid-cols-2 gap-2">
@@ -1503,7 +1658,7 @@ function NewReservationModal({
           </button>
         </div>
 
-        <p className="font-display tracking-widest uppercase text-xs mt-3 opacity-80">Forma de pagamento</p>
+        <p className="font-display font-semibold tracking-widest uppercase text-xs mt-3 opacity-80">Forma de pagamento</p>
         <div className="mt-1 flex flex-wrap gap-2">
           {PAYMENT_METHODS.map((m) => (
             <button
@@ -1517,7 +1672,7 @@ function NewReservationModal({
           ))}
         </div>
 
-        <h3 className="font-display text-xl tracking-widest uppercase border-b-2 border-ink pb-1 mt-5 mb-2">
+        <h3 className="font-display font-bold text-xl tracking-tight uppercase border-b border-smoke pb-1 mt-5 mb-2">
           Status inicial
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -1533,13 +1688,13 @@ function NewReservationModal({
           ))}
         </div>
 
-        <div className="mt-4 pt-3 border-t-2 border-ink flex justify-between font-display text-xl uppercase">
+        <div className="mt-4 pt-3 border-t border-smoke flex justify-between font-display text-xl uppercase">
           <span>Total: {brl(totalAmount)}</span>
           <span>{payMode === 'full' ? 'Pago' : 'Reserva 50%'}: {brl(reserveAmount)}</span>
         </div>
 
         {error && (
-          <div className="mt-3 border-2 border-ink bg-white p-2 font-body text-sm">
+          <div className="mt-3 border border-smoke bg-white p-2 font-body text-sm">
             ⚠ {error}
           </div>
         )}

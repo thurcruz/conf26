@@ -70,11 +70,11 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
     <>
       {mounted && showToast && !open && (
         <div
-          className="fixed bottom-5 right-[4.5rem] z-40 flex items-center pointer-events-none animate-toast-in drop-shadow-[3px_3px_0_rgba(0,0,0,1)]"
+          className="fixed bottom-5 right-[4.5rem] z-40 flex items-center pointer-events-none animate-toast-in drop-shadow-[0_4px_12px_rgba(0,0,0,0.18)]"
           role="status"
           aria-live="polite"
         >
-          <div className="border-2 border-r-0 border-ink bg-white text-ink font-display tracking-widest uppercase text-xs sm:text-sm px-3 py-2 whitespace-nowrap">
+          <div className="border border-r-0 border-smoke rounded-l-full bg-white text-ink font-display font-semibold tracking-widest uppercase text-xs sm:text-sm pl-4 pr-3 py-2 whitespace-nowrap">
             Seu pedido foi adicionado aqui
           </div>
           <svg
@@ -88,7 +88,7 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
             <polygon points="0,1 8,8 0,15" fill="#ffffff" stroke="none" />
             <polyline
               points="0,1 8,8 0,15"
-              stroke="#0a0a0a"
+              stroke="#e4e4e7"
               strokeWidth="2"
               strokeLinejoin="miter"
               fill="none"
@@ -99,7 +99,7 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
       <button
         type="button"
         onClick={openCart}
-        className="fixed bottom-4 right-4 z-40 v-btn !p-3"
+        className="fixed bottom-4 right-4 z-40 v-btn v-btn-dark !p-3.5 shadow-soft-lg"
         aria-label="Abrir carrinho"
       >
         <svg
@@ -118,7 +118,7 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
           <path d="M16 10a4 4 0 0 1-8 0" />
         </svg>
         {mounted && count > 0 && (
-          <span className="absolute -top-2 -right-2 min-w-[1.4rem] h-[1.4rem] px-1 inline-flex items-center justify-center bg-ink text-paper border-2 border-ink font-display text-xs tabular-nums">
+          <span className="absolute -top-2 -right-2 min-w-[1.4rem] h-[1.4rem] px-1 inline-flex items-center justify-center bg-ink text-paper border-2 border-white rounded-full font-display text-xs tabular-nums">
             {count}
           </span>
         )}
@@ -132,9 +132,9 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
             aria-label="Fechar"
             className="flex-1 bg-ink/60"
           />
-          <aside className="w-full max-w-md bg-paper text-ink border-l-2 border-ink shadow-vintage-lg flex flex-col">
-            <header className="flex items-center justify-between p-4 border-b-2 border-ink bg-ink text-paper">
-              <h2 className="font-display text-2xl tracking-widest uppercase">Carrinho</h2>
+          <aside className="w-full max-w-md bg-paper text-ink border-l border-smoke shadow-soft-lg flex flex-col sm:rounded-l-3xl overflow-hidden">
+            <header className="flex items-center justify-between p-4 border-b border-smoke bg-ink text-paper">
+              <h2 className="font-display font-bold text-2xl tracking-tight uppercase">Carrinho</h2>
               <button type="button" onClick={() => setOpen(false)} className="v-btn v-btn-sm">
                 Fechar
               </button>
@@ -145,10 +145,10 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
                 <p className="font-body text-center mt-8">Seu carrinho está vazio.</p>
               )}
               {items.map((i) => (
-                <div key={i.id} className="border-2 border-ink p-3 bg-white">
+                <div key={i.id} className="rounded-2xl border border-smoke p-3 bg-white">
                   <div className="flex justify-between gap-2">
                     <div>
-                      <p className="font-display text-lg tracking-wide uppercase leading-tight">
+                      <p className="font-display font-bold text-lg tracking-tight uppercase leading-tight">
                         Camisa {i.colorLabel}
                       </p>
                       <p className="font-body text-sm">
@@ -193,12 +193,12 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
               ))}
             </div>
 
-            <footer className="p-4 border-t-2 border-ink bg-bone">
+            <footer className="p-4 border-t border-smoke bg-bone">
               <div className="flex justify-between font-body text-sm">
                 <span>Total</span>
                 <span>{brl(total)}</span>
               </div>
-              <div className="flex justify-between font-display text-2xl tracking-wider uppercase mt-1">
+              <div className="flex justify-between font-display font-bold text-2xl tracking-tight uppercase mt-1">
                 <span>Reserva 50%</span>
                 <span>{brl(reserve)}</span>
               </div>
@@ -210,7 +210,7 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
                 <Link
                   href="/checkout"
                   onClick={() => setOpen(false)}
-                  className={`v-btn w-full mt-3 ${items.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`v-btn v-btn-pink w-full mt-3 ${items.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                   Finalizar reserva
                 </Link>
@@ -238,7 +238,7 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
             </button>
             <h2
               id="info-popup-title"
-              className="font-display text-2xl sm:text-3xl tracking-widest uppercase border-b-2 border-ink pb-2 pr-8"
+              className="font-display font-bold text-2xl sm:text-3xl tracking-tight uppercase border-b border-smoke pb-2 pr-8"
             >
               Atenção
             </h2>
@@ -256,7 +256,11 @@ export function CartDrawer({ salesPaused = false }: { salesPaused?: boolean }) {
             </ul>
             <p className="font-body text-xs sm:text-sm mt-3 opacity-80">
               Sem o comprovante, a reserva fica pendente e a camisa não é
-              garantida.
+              garantida. Esqueceu de enviar? Dá para anexar depois em{' '}
+              <Link href="/meus-pedidos" className="underline hover:no-underline">
+                Meu pedido
+              </Link>
+              .
             </p>
             <div className="mt-5">
               <button

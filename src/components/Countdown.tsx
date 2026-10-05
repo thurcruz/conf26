@@ -14,6 +14,11 @@ function diff(target: number) {
   };
 }
 
+/**
+ * Contagem regressiva ate o primeiro dia do evento.
+ * Fica dentro da hero (sobre o azul), alinhada a esquerda junto com o
+ * resto do conteudo — nao e um balao flutuante.
+ */
 export function Countdown() {
   const target = new Date(EVENT.date).getTime();
   const [t, setT] = useState(() => diff(target));
@@ -26,22 +31,22 @@ export function Countdown() {
   }, [target]);
 
   const cell = (n: number, label: string) => (
-    <div className="flex flex-col items-center px-2 sm:px-3">
-      <span className="font-display text-2xl sm:text-3xl leading-none tabular-nums">
+    <div className="flex items-baseline gap-1.5">
+      <span className="font-display font-bold text-2xl sm:text-3xl leading-none tabular-nums">
         {String(n).padStart(2, '0')}
       </span>
-      <span className="font-body text-[9px] sm:text-[10px] tracking-widest uppercase opacity-80">
+      <span className="font-body text-[10px] tracking-[0.14em] uppercase text-white/45">
         {label}
       </span>
     </div>
   );
 
   return (
-    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-30 v-card !p-2 !px-3 flex items-center gap-3 text-ink">
-      <div className="font-display text-xs sm:text-sm tracking-widest uppercase hidden sm:block border-r-2 border-ink pr-3">
-        31 · jul · 2026
-      </div>
-      <div className="flex items-center divide-x-2 divide-ink">
+    <div>
+      <p className="font-display text-[11px] tracking-[0.2em] uppercase text-white/40">
+        Faltam
+      </p>
+      <div className="mt-2 flex items-baseline gap-4 sm:gap-6" aria-live="off">
         {mounted ? (
           <>
             {cell(t.days, 'dias')}
@@ -50,7 +55,10 @@ export function Countdown() {
             {cell(t.seconds, 'seg')}
           </>
         ) : (
-          <div className="font-display text-xl">--:--:--:--</div>
+          /* Placeholder com a mesma altura, evita salto no hidrate */
+          <span className="font-display font-bold text-2xl sm:text-3xl leading-none text-white/25">
+            --
+          </span>
         )}
       </div>
     </div>

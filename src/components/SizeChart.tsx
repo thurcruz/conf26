@@ -7,13 +7,13 @@ const CHARTS = [
   {
     id: 'adulto',
     label: 'Adulto',
-    src: '/TABELADA_DE_MEDIDAS.jpeg',
+    src: '/medidas/adulto.jpeg',
     alt: 'Tabela de medidas Adulto — Casual e Oversize'
   },
   {
     id: 'infantil',
     label: 'Infantil',
-    src: '/TABELADA_DE_MEDIDAS_INFANTIL.jpeg',
+    src: '/medidas/infantil.jpeg',
     alt: 'Tabela de medidas Infantil — 2 a 14 anos'
   }
 ] as const;
@@ -80,9 +80,9 @@ export function SizeChart() {
   }
 
   return (
-    <div className="glass-card max-w-3xl mx-auto">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-paper pb-3 mb-4">
-        <h3 className="font-display text-2xl sm:text-3xl tracking-widest uppercase">
+    <div className="v-card max-w-3xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-smoke pb-3 mb-4">
+        <h3 className="font-display font-bold text-2xl sm:text-3xl tracking-tight uppercase">
           Tabela de Medidas
         </h3>
         <div className="flex gap-2">
@@ -91,7 +91,7 @@ export function SizeChart() {
               key={c.id}
               type="button"
               onClick={() => goTo(i)}
-              className={`v-chip-glass ${active === i ? 'v-chip-glass-active' : ''}`}
+              className={`v-chip ${active === i ? 'v-chip-active' : ''}`}
             >
               {c.label}
             </button>
@@ -116,7 +116,7 @@ export function SizeChart() {
             className="w-full flex-shrink-0 snap-center"
             aria-label={c.label}
           >
-            <div className="relative w-full aspect-square border-2 border-paper bg-white pointer-events-none">
+            <div className="relative w-full aspect-square rounded-2xl border border-smoke bg-bone pointer-events-none">
               <Image
                 src={c.src}
                 alt={c.alt}
@@ -143,8 +143,8 @@ export function SizeChart() {
               aria-selected={active === i}
               aria-label={`Ir para ${c.label}`}
               onClick={() => goTo(i)}
-              className={`w-3 h-3 border-2 border-paper transition-colors ${
-                active === i ? 'bg-paper' : 'bg-transparent'
+              className={`w-2.5 h-2.5 rounded-full border border-ash transition-colors ${
+                active === i ? 'bg-ink border-ink' : 'bg-transparent'
               }`}
             />
           ))}

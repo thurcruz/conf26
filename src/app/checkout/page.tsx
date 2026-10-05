@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/store/cart';
-import { EVENT } from '@/lib/products';
+import { EVENT, LOGOS } from '@/lib/products';
+import { ProofBanner } from '@/components/ProofBanner';
+import { ProofUpload } from '@/components/ProofUpload';
+import { lembrarReserva, protocoloDe } from '@/lib/reserva';
+import { ProtocoloDestaque } from '@/components/Protocolo';
 import { createClient } from '@/lib/supabase/client';
 
 function brl(n: number) {
@@ -26,7 +31,11 @@ export default function CheckoutPage() {
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ id: string; whatsappLink: string } | null>(null);
+  const [done, setDone] = useState<{
+    id: string;
+    whatsappLink: string;
+    temComprovante: boolean;
+  } | null>(null);
   const [salesPaused, setSalesPaused] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -103,22 +112,32 @@ export default function CheckoutPage() {
         .map((i) => `• ${i.qty}x ${i.colorLabel} — ${i.size} (${i.typeLabel})`)
         .join('\n');
       const msg = encodeURIComponent(
-        `Olá! Acabei de fazer uma reserva da camisa da Conferência 2026.\n\n` +
-          `Nome: ${name}\nTelefone: ${phone}\nReserva #${reservationId.slice(0, 8)}\n\n` +
+        `Olá! Acabei de fazer uma reserva da camisa da Conferência ${EVENT.name}.\n\n` +
+          `Nome: ${name}\nTelefone: ${phone}\nNº do pedido: #${protocoloDe(reservationId)}\n\n` +
           `Itens:\n${summary}\n\nTotal: ${brl(total)}\n` +
           (payMode === 'full'
             ? `Pago integralmente: ${brl(total)}\n\n`
             : `Reserva (50%): ${brl(reserve)}\n\n`) +
           (mode === 'whatsapp'
             ? 'Vou enviar o comprovante do PIX por aqui.'
-            : 'Comprovante já anexado no site.')
+            : 'Comprovante já anexado no site.') +
+          `\n\nAcompanhe em: ${
+            typeof window !== 'undefined' ? window.location.origin : ''
+          }/meus-pedidos`
       );
       const link = `https://wa.me/${EVENT.whatsapp}?text=${msg}`;
 
       clear();
-      setDone({ id: reservationId, whatsappLink: link });
+      lembrarReserva({ protocolo: protocoloDe(reservationId), phone: phone.trim() });
+      setDone({
+        id: reservationId,
+        whatsappLink: link,
+        temComprovante: payment_proof_url !== null
+      });
       if (mode === 'whatsapp') {
-        window.location.href = link;
+        // Nova aba de proposito: se trocarmos a pagina, a pessoa perde o protocolo
+        // e o campo de anexar comprovante — que e justamente o que falta fazer.
+        window.open(link, '_blank', 'noopener');
       }
     } catch (err: any) {
       setError(err?.message ?? 'Erro ao enviar reserva.');
@@ -135,7 +154,7 @@ export default function CheckoutPage() {
     return (
       <main className="min-h-screen bg-paper text-ink flex items-center justify-center p-6">
         <div className="v-card max-w-lg w-full text-center">
-          <h1 className="font-display text-4xl tracking-widest uppercase">Reservas indisponíveis</h1>
+          <h1 className="font-display font-bold text-4xl tracking-tight uppercase">Reservas indisponíveis</h1>
           <p className="font-body mt-3">
             As reservas de camisas não estão mais disponíveis no momento. Fique de olho nos
             avisos da secretaria para novidades.
@@ -149,20 +168,74 @@ export default function CheckoutPage() {
   }
 
   if (done) {
+    const protocolo = protocoloDe(done.id);
     return (
-      <main className="min-h-screen bg-paper text-ink flex items-center justify-center p-6">
-        <div className="v-card max-w-lg w-full text-center">
-          <h1 className="font-display text-4xl tracking-widest uppercase">Reserva enviada!</h1>
-          <p className="font-body mt-3">
-            Protocolo <strong>#{done.id.slice(0, 8).toUpperCase()}</strong>
-          </p>
-          <p className="font-body mt-3">
-            Sua reserva foi registrada. Em breve a secretaria entrará em contato pelo WhatsApp
-            para confirmar.
-          </p>
-          <a href={done.whatsappLink} target="_blank" rel="noreferrer" className="v-btn v-btn-dark w-full mt-5">
-            Falar com a secretaria
-          </a>
+      <main className="min-h-screen bg-paper text-ink flex items-center justify-center p-5 py-10">
+        <div className="v-card max-w-lg w-full">
+          <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight">
+            Reserva registrada
+          </h1>
+
+          <div className="mt-5 pb-5 border-b border-smoke">
+            <ProtocoloDestaque protocolo={protocolo} />
+            <div className="mt-3 border-l-2 border-smoke pl-4 py-1">
+              <p className="font-body text-sm text-ash">
+                <strong className="text-ink">Guarde este número.</strong> É ele que identifica
+                a sua reserva: com ele você acompanha o pedido aqui no site e a secretaria
+                encontra a sua camisa.
+              </p>
+              <p className="font-body text-sm text-ash mt-1.5">
+                Ele também já vai na mensagem do WhatsApp, então você não precisa decorar —
+                mas copiar aqui não custa nada.
+              </p>
+            </div>
+          </div>
+
+          {done.temComprovante ? (
+            <div className="mt-5 border-l-2 border-success bg-success-soft pl-4 py-3 rounded-r-xl">
+              <p className="font-display font-semibold text-success">Comprovante recebido</p>
+              <p className="font-body text-sm text-ash mt-0.5">
+                A secretaria vai conferir e confirmar sua reserva.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 border-l-2 border-pink bg-pink-soft pl-4 py-3 rounded-r-xl">
+                <p className="font-display font-semibold text-pink-dark">
+                  Falta o comprovante
+                </p>
+                <p className="font-body text-sm text-ash mt-0.5">
+                  Sua camisa <strong>ainda não está garantida</strong>. Envie o comprovante do
+                  PIX agora — aqui mesmo ou pelo WhatsApp.
+                </p>
+              </div>
+
+              <div className="mt-5">
+                <p className="font-display font-semibold text-[11px] tracking-[0.18em] uppercase text-ash mb-2.5">
+                  Anexar agora
+                </p>
+                <ProofUpload protocolo={protocolo} phone={phone.trim()} compact />
+              </div>
+
+              <a
+                href={done.whatsappLink}
+                target="_blank"
+                rel="noreferrer"
+                className="v-btn w-full mt-3"
+              >
+                Enviar pelo WhatsApp
+              </a>
+            </>
+          )}
+
+          <div className="mt-6 pt-5 border-t border-smoke flex flex-col sm:flex-row gap-3">
+            <Link href="/meus-pedidos" className="v-btn v-btn-dark flex-1">
+              Acompanhar meu pedido
+            </Link>
+            <Link href="/" className="v-btn flex-1">
+              Voltar para o início
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -170,17 +243,21 @@ export default function CheckoutPage() {
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="bg-ink text-paper border-b-2 border-ink">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="font-display tracking-widest uppercase">← Voltar</Link>
-          <span className="font-display tracking-widest uppercase">Reserva</span>
+      <ProofBanner />
+
+      <header className="border-b border-smoke bg-white/90 backdrop-blur-md sticky top-11 sm:top-12 z-20">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <Link href="/" className="v-btn v-btn-sm v-btn-ghost">← Voltar</Link>
+          <div className="relative w-[132px] aspect-logo">
+            <Image src={LOGOS.navy} alt={EVENT.name} fill sizes="132px" className="object-contain" priority />
+          </div>
         </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         {/* Items recap */}
         <section className="v-card">
-          <h2 className="font-display text-2xl tracking-widest uppercase border-b-2 border-ink pb-2 mb-3">
+          <h2 className="font-display font-bold text-2xl tracking-tight uppercase border-b border-smoke pb-2 mb-3">
             Seus itens
           </h2>
           {items.length === 0 ? (
@@ -188,7 +265,7 @@ export default function CheckoutPage() {
               Carrinho vazio. <Link href="/" className="underline">Escolha sua camisa</Link>.
             </p>
           ) : (
-            <ul className="divide-y-2 divide-ink">
+            <ul className="divide-y divide-smoke">
               {items.map((i) => (
                 <li key={i.id} className="py-2 flex justify-between font-body">
                   <span>
@@ -199,13 +276,13 @@ export default function CheckoutPage() {
               ))}
             </ul>
           )}
-          <div className="mt-3 pt-3 border-t-2 border-ink flex justify-between font-display text-xl uppercase">
+          <div className="mt-3 pt-3 border-t border-smoke flex justify-between font-display text-xl uppercase">
             <span>Total</span>
             <span>{brl(total)}</span>
           </div>
 
-          <div className="mt-3 pt-3 border-t-2 border-ink">
-            <p className="font-display tracking-widest uppercase text-sm mb-2">
+          <div className="mt-3 pt-3 border-t border-smoke">
+            <p className="font-display font-semibold tracking-widest uppercase text-sm mb-2">
               Como quer pagar?
             </p>
             <div className="grid sm:grid-cols-2 gap-2">
@@ -245,20 +322,20 @@ export default function CheckoutPage() {
 
         {/* Dados */}
         <section className="v-card">
-          <h2 className="font-display text-2xl tracking-widest uppercase border-b-2 border-ink pb-2 mb-3">
+          <h2 className="font-display font-bold text-2xl tracking-tight uppercase border-b border-smoke pb-2 mb-3">
             Seus dados
           </h2>
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="block sm:col-span-2">
-              <span className="font-display tracking-widest uppercase text-sm">Nome completo *</span>
+              <span className="font-display font-semibold tracking-widest uppercase text-sm">Nome completo *</span>
               <input className="v-input mt-1" value={name} onChange={(e) => setName(e.target.value)} />
             </label>
             <label className="block">
-              <span className="font-display tracking-widest uppercase text-sm">WhatsApp *</span>
+              <span className="font-display font-semibold tracking-widest uppercase text-sm">WhatsApp *</span>
               <input className="v-input mt-1" placeholder="(21) 9 0000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </label>
             <label className="block">
-              <span className="font-display tracking-widest uppercase text-sm">E-mail</span>
+              <span className="font-display font-semibold tracking-widest uppercase text-sm">E-mail</span>
               <input className="v-input mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </label>
           </div>
@@ -266,7 +343,7 @@ export default function CheckoutPage() {
 
         {/* PIX */}
         <section className="v-card">
-          <h2 className="font-display text-2xl tracking-widest uppercase border-b-2 border-ink pb-2 mb-3">
+          <h2 className="font-display font-bold text-2xl tracking-tight uppercase border-b border-smoke pb-2 mb-3">
             Pague {brl(payNow)} via PIX
           </h2>
           <p className="font-body text-sm mb-2">Chave PIX (CNPJ):</p>
@@ -286,7 +363,7 @@ export default function CheckoutPage() {
 
         {/* Comprovante */}
         <section className="v-card">
-          <h2 className="font-display text-2xl tracking-widest uppercase border-b-2 border-ink pb-2 mb-3">
+          <h2 className="font-display font-bold text-2xl tracking-tight uppercase border-b border-smoke pb-2 mb-3">
             Envie o comprovante
           </h2>
           <p className="font-body text-sm mb-3">
@@ -305,7 +382,7 @@ export default function CheckoutPage() {
           )}
 
           {error && (
-            <div className="mt-3 border-2 border-ink bg-bone p-2 font-body text-sm">
+            <div className="mt-3 rounded-2xl border border-pink bg-pink-soft text-pink-dark px-4 py-2.5 font-body text-sm">
               ⚠ {error}
             </div>
           )}
@@ -315,7 +392,7 @@ export default function CheckoutPage() {
               type="button"
               disabled={submitting || items.length === 0}
               onClick={() => handleSubmit('upload')}
-              className="v-btn"
+              className="v-btn v-btn-pink"
             >
               {submitting ? 'Enviando...' : 'Enviar reserva com comprovante'}
             </button>

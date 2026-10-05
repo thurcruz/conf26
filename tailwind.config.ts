@@ -5,19 +5,40 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Bebas Neue"', 'Impact', 'sans-serif'],
-        body: ['"Special Elite"', '"Courier New"', 'monospace'],
-        serif: ['"Playfair Display"', 'Georgia', 'serif']
+        // '"ADP Numerais"' primeiro: cobre so os digitos (ver @font-face em globals.css).
+        display: ['"ADP Numerais"', '"Space Grotesk"', 'system-ui', 'sans-serif'],
+        body: ['"ADP Numerais"', '"Space Grotesk"', 'system-ui', 'sans-serif'],
+        serif: ['"Instrument Serif"', 'Georgia', 'serif']
       },
       colors: {
-        ink: '#0a0a0a',
-        paper: '#f5f1e8',
-        bone: '#ece6d6'
+        // Identidade "Alem do Palco": azul-marinho #090424 + rosa #ff0040
+        navy: '#090424',
+        'navy-soft': '#15103c',
+        'navy-line': '#2a2355',
+        pink: '#ff0040',
+        'pink-dark': '#d60036',
+        'pink-soft': '#fff0f3',
+
+        // Verde só para status "confirmado" — fora da paleta da marca de propósito,
+        // porque confirmação precisa ler diferente de alerta.
+        success: '#0f8a53',
+        'success-soft': '#eefaf3',
+
+        // ink = azul-marinho da marca (em vez de preto puro)
+        ink: '#090424',
+        graphite: '#3a3566',
+        ash: '#6f6b92',
+        smoke: '#e5e4ee',
+        bone: '#f5f5fa',
+        paper: '#ffffff'
       },
       boxShadow: {
-        'vintage': '4px 4px 0 0 #0a0a0a',
-        'vintage-sm': '2px 2px 0 0 #0a0a0a',
-        'vintage-lg': '6px 6px 0 0 #0a0a0a'
+        'soft-sm': '0 1px 2px 0 rgb(9 4 36 / 0.06)',
+        'soft': '0 2px 10px -2px rgb(9 4 36 / 0.10)',
+        'soft-lg': '0 12px 40px -8px rgb(9 4 36 / 0.20)'
+      },
+      aspectRatio: {
+        logo: '747 / 106'
       }
     }
   },

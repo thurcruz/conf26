@@ -31,13 +31,13 @@ export default function AdminLogin() {
   return (
     <main className="min-h-screen bg-paper text-ink flex items-center justify-center p-6">
       <form onSubmit={handleLogin} className="v-card w-full max-w-md">
-        <h1 className="font-display text-3xl tracking-widest uppercase border-b-2 border-ink pb-3">
+        <h1 className="font-display font-bold text-3xl tracking-tight uppercase border-b border-smoke pb-3">
           Acesso · Líderes
         </h1>
         <p className="font-body text-sm mt-2">Ministério Recarga · Painel Administrativo</p>
 
         <label className="block mt-4">
-          <span className="font-display tracking-widest uppercase text-sm">E-mail</span>
+          <span className="font-display font-semibold tracking-widest uppercase text-sm">E-mail</span>
           <input
             type="email"
             required
@@ -47,7 +47,7 @@ export default function AdminLogin() {
           />
         </label>
         <label className="block mt-3">
-          <span className="font-display tracking-widest uppercase text-sm">Senha</span>
+          <span className="font-display font-semibold tracking-widest uppercase text-sm">Senha</span>
           <div className="mt-1 flex gap-2">
             <input
               type={showPwd ? 'text' : 'password'}
@@ -101,7 +101,7 @@ export default function AdminLogin() {
         </label>
 
         {error && (
-          <div className="mt-3 border-2 border-ink bg-bone p-2 font-body text-sm">⚠ {error}</div>
+          <div className="mt-3 rounded-2xl border border-pink bg-pink-soft text-pink-dark px-4 py-2.5 font-body text-sm">⚠ {error}</div>
         )}
 
         <button type="submit" disabled={loading} className="v-btn w-full mt-5">
